@@ -1,0 +1,599 @@
+<html>
+<head>
+<title>Checkers</title>
+<style>canvas { width: 100%; height: 100% }</style>
+</head>
+<body>
+<script src="js/three.min.js"></script>
+<script src="js/OrbitControls.js"></script>
+<script>
+
+var scene;
+var camera;
+var renderer;
+var WIDTH;
+var HEIGHT;
+var controls;
+var projector;
+var mouse = { x: 0, y: 0 }; // Mouse position.
+var drag = false;
+var intersect = false;
+var BOARD_WIDTH = 8;
+var BOARD_HEIGHT = 8;
+var COLOR_WHITE = 0xD6B57A;
+var COLOR_WHITE_SELECTED = 0xF6D59A;
+var COLOR_BLACK = 0x321900;
+var COLOR_BLACK_SELECTED = 0x523920;
+var selected_checker = null;
+
+function Radians(degrees) {
+  return 2 * Math.PI * (degrees / 360);
+}
+
+function BoardToSpaceCords(position) {
+    origin = new THREE.Vector3(0, 0, 0);
+    cellX = (BOARD_WIDTH / 8) / 2 ;
+    cellY = (BOARD_HEIGHT / 8) / 2;
+
+    x = origin.x + (position.x * cellX * 2) + cellX;
+    y = origin.y + (position.y * cellY * 2) + cellY;
+    offset = new THREE.Vector3(y, x, 0);
+    return offset;
+}
+
+function SpaceToBoardCords(position) {
+  row = Math.floor(position.y);
+  col = Math.floor(position.x);
+
+  return {'x' : row, 'y' : col};
+}
+
+function Board() {
+  
+  this.MoveChecker = MoveChecker;
+  this.AddChecker = AddChecker;
+  this.RemoveChecker = RemoveChecker;
+  this.HighLightCell = HighLightCell;
+  this.WithInBounds = WithInBounds;
+
+  this.checkers = new Array();
+
+  for(var row = 0; row < BOARD_HEIGHT; row++) {
+    this.checkers[row] = new Array();
+    for(var col = 0; col < BOARD_WIDTH; col++) {
+      this.checkers[row][col] = null;
+    }
+  }
+}
+
+function HighLightCell (position) {
+  // TODO shine given position. 
+}
+
+function WithInBounds(position) {
+  
+  if(position.x < 0 || position.x > BOARD_HEIGHT || position.y < 0 || position.y > BOARD_WIDTH) {
+    console.log("out of bounds.")
+    return false;
+  }
+
+  return true;
+}
+
+function AddChecker(position, color) {
+  if(!this.WithInBounds(position)) {
+    return false;
+  }
+
+  if(this.checkers[position.x][position.y] != null) {
+    console.log("There's already a piece at given position.");
+    return false;
+  }
+
+  var checker = new Checker(position, color);
+  this.checkers[position.x][position.y] = checker;
+  scene.add(checker.cylinder);
+  return true;
+}
+
+function RemoveChecker(position) {
+  if(!this.WithInBounds(position)) {
+    return false;
+  }
+
+  if(this.checkers[position.x][position.y] == null) {
+    console.log("There's no piece at given position.");
+    return false;
+  }
+
+  var checker = this.checkers[position.x][position.y];
+  scene.remove(checker.cylinder);
+  checker.Remove();
+  delete this.checkers[position.x][position.y];
+  this.checkers[position.x][position.y] = null;
+  return true;
+}
+
+function MoveChecker(from, to) {
+  if(!this.WithInBounds(from) || !this.WithInBounds(to)) {
+    return false;
+  }
+
+  if(this.checkers[from.x][from.y] == null) {
+    return false;
+  }
+
+  if(this.checkers[to.x][to.y] != null) {
+    return false;
+  }
+
+  // TODO: There are more checks we can perform here, but for the meantime this is enough.
+  checker = this.checkers[from.x][from.y];
+  this.checkers[from.x][from.y] = null;
+  this.checkers[to.x][to.y] = checker;
+
+  checker.Move(to);
+}
+
+function Checker(position, color)
+{
+  this.color = color;
+  this.board_position = position;
+  this.world_position = BoardToSpaceCords(this.board_position);
+  this.cylinder = CreateCylinder(BOARD_WIDTH / 20 , BOARD_WIDTH / 20, 0.2, 32, this.color);
+  this.cylinder.position = this.world_position;
+  this.cylinder.rotation.x = Math.PI / 2;
+  this.cylinder.checker = this;
+  this.Selected = Selected;
+  this.UnSelect = UnSelect;
+  this.Move = Move;
+  this.Remove = Remove;
+  this.AnimateMove = AnimateMove;
+  this.SetColor = SetColor;
+
+  scene.add(this.cylinder);
+}
+
+function Remove() {
+  this.cylinder = null;
+}
+
+function SetColor(color) {
+  this.cylinder.material.color.setHex(color);
+}
+
+function AnimateMove(position) {
+  this.world_position = position;
+  selected_checker.cylinder.position = this.world_position;
+}
+
+function Move(position) {
+  this.board_position = position;
+}
+
+function Selected() {
+  if(this.color == COLOR_WHITE) {
+    this.SetColor(COLOR_WHITE_SELECTED);  
+  }
+  else {
+    this.SetColor(COLOR_BLACK_SELECTED);   
+  }
+}
+
+function UnSelect() {
+  this.SetColor(this.color);
+}
+
+function CreateCylinder(radiusTop, radiusBottom, height, segments, _color) {
+    var geometry = new THREE.CylinderGeometry( radiusTop, radiusBottom, height, segments);
+    var material = new THREE.MeshBasicMaterial( {color: _color} );
+    var cylinder = new THREE.Mesh( geometry, material );
+    return cylinder;
+}
+
+function CreateFloor() {
+    var floorTexture = new THREE.ImageUtils.loadTexture( 'images/checkerboard.jpg' );
+    floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping; 
+    floorTexture.repeat.set(2, 2);
+    var floorMaterial = new THREE.MeshBasicMaterial( { map: floorTexture, side: THREE.DoubleSide } );
+    var floorGeometry = new THREE.PlaneGeometry(BOARD_WIDTH, BOARD_HEIGHT, 1, 1);
+    var floor = new THREE.Mesh(floorGeometry, floorMaterial);
+    return floor;
+}
+
+function Init() {
+    // set the scene size/
+    WIDTH = window.innerWidth;
+    HEIGHT = window.innerHeight;
+
+    // set some camera attributes
+    var VIEW_ANGLE = 45;
+    var ASPECT = WIDTH / HEIGHT;
+    var NEAR = 0.1;
+    var FAR = 10000;
+
+    // create a WebGL renderer, camera and scene. 
+    renderer = new THREE.WebGLRenderer();
+    scene = new THREE.Scene();
+
+    camera =  new THREE.PerspectiveCamera( VIEW_ANGLE, ASPECT, NEAR, FAR);
+    //controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+    // add the camera to the scene.
+    scene.add(camera);
+
+    // the camera starts at 0,0,0
+    // so pull it back.
+    camera.position = new THREE.Vector3(BOARD_WIDTH / 2, -4, 6);
+    //camera.lookAt(scene.position);
+    var center = new THREE.Vector3(BOARD_WIDTH / 2, BOARD_HEIGHT / 2, 0);
+    camera.lookAt(center);
+
+    // create a point light
+    var pointLight = new THREE.PointLight(0xFFFFFF);
+
+    // set its position
+    pointLight.position.x = 0;
+    pointLight.position.y = 0;
+    pointLight.position.z = 900;
+
+    // add to the scene
+    scene.add(pointLight);
+
+    var axisHelper = new THREE.AxisHelper( WIDTH / 2 );
+    scene.add( axisHelper );
+
+    // initialize object to perform world/screen calculations
+    projector = new THREE.Projector();
+
+    // Start the renderer
+    renderer.setSize(WIDTH, HEIGHT);
+
+    // attach the render-supplied DOM element.
+    document.body.appendChild( renderer.domElement );
+
+    // when the mouse moves, call the given function
+    document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+
+    // when the mouse moves, call the given function
+    document.addEventListener( 'mousedown', onDocumentMouseDown, false );
+
+    // when the mouse moves, call the given function
+    document.addEventListener( 'mouseup', onDocumentMouseUp, false );
+
+    // FLOOR
+    var floor = CreateFloor();
+    floor.position.x = BOARD_WIDTH / 2;
+    floor.position.y = BOARD_HEIGHT / 2;
+    //floor.rotation.x = -Math.PI / 4;
+    scene.add(floor);
+}
+
+function onDocumentMouseDown( event ) 
+{
+  if(selected_checker != null) {
+    drag = true;
+  }
+}
+
+function onDocumentMouseUp(event)
+{
+  if(!drag) { return; }
+  drag = false;
+
+  // Where was the selected piece used to be?
+  var original_position = BoardToSpaceCords(selected_checker.board_position);
+  
+  // Get board position
+  var board_pos = SpaceToBoardCords(selected_checker.world_position);
+  
+  // Are we outside the board boundry?
+  if(!board.WithInBounds(board_pos)) {
+    console.log("Not within bounds.");
+    
+    // Return to original position.
+    selected_checker.AnimateMove(original_position);
+
+    // Diselect piece.
+    selected_checker.UnSelect();
+    drag = false;
+    selected_checker = null;
+
+    return;
+  }
+
+  // Stayed put
+  if(board_pos.x == selected_checker.board_position.x && board_pos.y == selected_checker.board_position.y) {
+    console.log("Stayed put");
+    // Diselect piece.
+    selected_checker.UnSelect();
+    drag = false;
+    selected_checker = null;
+
+    return; 
+  }
+
+  // Make sure move is legal.    
+  server.RequestPossibleMoves(selected_checker.board_position, 
+    function(response) {
+      var legal = false;
+      var piece_new_position = SpaceToBoardCords(selected_checker.world_position);
+      var play = null;
+
+      for(var idx = 0; idx < response.possible_moves.length; idx++) {
+        play = response.possible_moves[idx];
+
+        // Make sure this play matches our move.
+        if(play[0].from[0] != selected_checker.board_position.x||
+          play[0].from[1] != selected_checker.board_position.y ||
+          play[0].to[0] != piece_new_position.x || 
+          play[0].to[1] != piece_new_position.y) {
+          continue;
+        }
+        else {
+          legal = true;
+          break;
+        }
+      } // End of loop.
+
+      if(!legal) {
+        // Restore to original position.
+        selected_checker.AnimateMove(original_position);
+        console.log("illegal move.");
+      }
+      else {          
+        // Let server know about the move.
+        server.UpdatePiecePosition(selected_checker.board_position, piece_new_position, 
+          function(response) {
+            if(response.result == true) {
+              if(play[0].eat == true) {
+                console.log("Eat move.");
+
+                // Determin which piece(s) to remove.
+                var middel = {'x' : (play[0].from[0] + play[0].to[0]) / 2,
+                              'y' : (play[0].from[1] + play[0].to[1]) / 2};
+            
+                var dead = board.checkers[middel.x][middel.y];
+                if(dead == null) { 
+                  console.log("Dead piece missing.");
+                }
+                board.RemoveChecker(middel);
+              }
+              // Update board && checker.
+              board.MoveChecker(selected_checker.board_position, piece_new_position);
+            }
+            else {
+              console.log("Illegal move, probably out of sync with server.");
+            }
+          });
+      }
+  });
+}
+
+function onDocumentMouseMove( event ) 
+{
+  // the following line would stop any other event handler from firing
+  // (such as the mouse's TrackballControls)
+  // event.preventDefault();
+
+  var x = ( event.clientX / window.innerWidth ) * 2 - 1;
+  var y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+
+  // update the mouse variable
+  mouse.x = x;
+  mouse.y = y;
+
+  if(drag)
+  {
+    // Unproject mouse cords into world.
+    var vector = new THREE.Vector3(x, y, 0.5);
+    projector.unprojectVector(vector, camera);
+    var dir = vector.sub(camera.position).normalize();
+    var distance = - camera.position.z / dir.z;
+
+    // Determin mouse position within the world.
+    var pos = camera.position.clone().add(dir.multiplyScalar(distance));
+    selected_checker.AnimateMove(pos);
+  }
+}
+
+function render() {
+  requestAnimationFrame(render);  
+  renderer.render(scene, camera);
+  //controls.update();
+  update();
+}
+
+function update()
+{
+  // Are we already dragging?
+  if(drag) {
+    return;
+  }
+  // find intersections
+
+  // create a Ray with origin at the mouse position
+  //   and direction into the scene (camera direction)
+  var vector = new THREE.Vector3( mouse.x, mouse.y, 1 );
+  projector.unprojectVector(vector, camera);
+  var ray = new THREE.Raycaster(camera.position, vector.sub( camera.position ).normalize());
+
+  // create an array containing all objects in the scene with which the ray intersects
+  var intersects = ray.intersectObjects( scene.children );
+
+  // INTERSECTED = the object in the scene currently closest to the camera 
+  //   and intersected by the Ray projected from the mouse position 
+
+  // if there is one (or more) intersections
+  if ( intersects.length > 0 )
+  {
+    var temp = null;
+    for(var objIdx = 0; objIdx < intersects.length; objIdx++) {
+      if(intersects[objIdx].object.hasOwnProperty("checker") == true) {
+          var checker = intersects[objIdx].object.checker;
+          //checker.cylinder.material.color.setHex(0xCC0099);
+          temp = checker;          
+          break;
+      }      
+    }
+
+    // Did we just unselected a piece?
+    if(temp == null) {
+      if(selected_checker != null) {
+        selected_checker.UnSelect();
+        selected_checker = null;
+      }
+    }
+    // Did we just selected a new piece?
+    else {
+      if(temp != selected_checker) {
+        if(selected_checker != null) {
+          selected_checker.UnSelect();
+        }
+        selected_checker = temp;
+        selected_checker.Selected();
+      }
+    }
+
+    // set a new color for closest object
+    //INTERSECTED.material.color.setHex(0xff0000);
+    //pendulum.bob.material.color.setHex(0xff0000);
+  } 
+  else // there are no intersections
+  {
+    selected_checker = null;
+    //pendulum.bob.material.color.setHex(0x00cc00);
+  }
+}
+
+function Map(value, cMin, cMax, dMin, dMax) {
+  // Assuming value is between cMin and cMax.
+  // cMax > cMin
+  // dMax > dMin
+
+  return dMin + (value - cMin) * (dMax - dMin) / (cMax - cMin);
+
+  var srcMax = Math.abs(cMax - cMin),
+  dstMax = Math.abs(dMax - dMin),
+  adjValue = Math.abs(value - cMin);
+
+  return (adjValue * dstMax / srcMax) + dMin;
+}
+
+var ACTIONS = {INIT : 0, POSSIBLE_MOVES : 1, MOVE : 2, }
+
+function Server() {    
+  this.address = 'ws://127.0.0.1:9000/ws';
+  this.callbackQueue = [];
+  this.connection = null;
+  this.Send = Send;
+  this.InitWSConnection = InitWSConnection;
+  this.RequestPossibleMoves = RequestPossibleMoves;
+  this.UpdatePiecePosition = UpdatePiecePosition;
+}
+
+// Sends a request over websocket.
+function Send(request, callback) {
+  
+  if(callback != null) {
+    this.callbackQueue.push(callback);
+  }
+
+  this.connection.send(JSON.stringify(request));
+}
+
+function InitWSConnection() {
+  this.connection = new WebSocket(this.address);
+  var me = this;
+  
+  this.connection.onopen = function() {
+   /*Send a small message to the console once the connection is established */
+   console.log('Connection open!');
+   game.JoinGame();
+   
+   //connection.send('Join');
+  }
+
+  this.connection.onclose = function() {
+   console.log('Connection closed');
+  }
+
+  this.connection.onerror = function(error) {
+   console.log('Error detected: ' + error);
+  }
+
+  this.connection.onmessage = function(e) {
+   var server_message = e.data;
+   console.log(server_message);
+
+   // Pop callback from queue.
+   var callback = me.callbackQueue.shift();
+   callback(JSON.parse(e.data));
+   // HandleResponse(JSON.parse(e.data));
+  }
+}
+
+function RequestPossibleMoves(position, callback) {
+  var request = {"action" : ACTIONS.POSSIBLE_MOVES, "piece_position" : position };
+  this.Send(request, callback);
+}
+
+function UpdatePiecePosition(from, to, callback) {
+  var request = {'action' : ACTIONS.MOVE, "from" : from, "to" : to};
+  this.Send(request, callback);
+}
+
+function HandleResponse(response) {
+  switch(response.response_to) {
+    case ACTIONS.INIT:
+    console.log("INIT");
+    HandleInit(response);
+    break;
+  }
+}
+
+function GameManager () {
+  this.JoinGame = JoinGame;
+  this.RequestBoard = RequestBoard;
+  this.HandleRequestBoard = HandleRequestBoard;
+  this.RunGameLoop = RunGameLoop;
+}
+
+function JoinGame() {
+  this.RequestBoard();
+  this.RunGameLoop();
+}
+
+function RequestBoard() {
+  var request = {"action" : ACTIONS.INIT};
+  server.Send(request, this.HandleRequestBoard);
+}
+
+function HandleRequestBoard(data) {
+  for(var idx = 0; idx < data.whites.length; idx++) {
+    var piecePos = data.whites[idx];
+    board.AddChecker(piecePos, COLOR_WHITE);
+  }
+
+  for(var idx = 0; idx < data.blacks.length; idx++) {
+    var piecePos = data.blacks[idx];
+    board.AddChecker(piecePos, COLOR_BLACK);
+  }
+}
+
+function RunGameLoop() {
+
+}
+
+Init();
+
+var game = new GameManager();
+var board = new Board();
+var server = new Server();
+server.InitWSConnection();
+
+render();
+
+</script>
+</body>
+</html>
