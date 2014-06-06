@@ -334,7 +334,7 @@ if(TestPossibleMoves() != True):
 if(TestTree() != True):
 	print"TestTree failed"
 
-if(TestLookAhead() != True):
-	print "TestLookAhead failed"
+#if(TestLookAhead() != True):
+	#print "TestLookAhead failed"
 
 print "test suite completed"

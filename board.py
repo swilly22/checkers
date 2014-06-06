@@ -6,8 +6,8 @@ import sys
 
 class Board(object):
     def __init__(self):
-        self.blank_board = [[0 for x in range(10)] for x in range(10)]
-        self.board = [[None for x in range(10)] for x in range(10)]
+        self.blank_board = [[0 for x in range(8)] for x in range(8)]
+        self.board = [[None for x in range(8)] for x in range(8)]
         self.checkers = {config.WHITE: [], config.BLACK: []}
 
         for x in range(config.BOARD_WIDTH):

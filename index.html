@@ -217,7 +217,7 @@ function Init() {
     scene = new THREE.Scene();
 
     camera =  new THREE.PerspectiveCamera( VIEW_ANGLE, ASPECT, NEAR, FAR);
-    //controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls = new THREE.OrbitControls(camera, renderer.domElement);
 
     // add the camera to the scene.
     scene.add(camera);
@@ -400,7 +400,7 @@ function onDocumentMouseMove( event )
 function render() {
   requestAnimationFrame(render);  
   renderer.render(scene, camera);
-  //controls.update();
+  controls.update();
   update();
 }
 
@@ -591,6 +591,22 @@ var game = new GameManager();
 var board = new Board();
 var server = new Server();
 server.InitWSConnection();
+
+
+var loader = new THREE.JSONLoader;
+loader.load('js/Frame.js', function (geometry, materials) {
+    var material = new THREE.MeshBasicMaterial( {color: COLOR_WHITE} );
+    var frame = new THREE.Mesh( geometry, material );
+    frame.position = new THREE.Vector3(0,0,0);
+    scene.add(frame);
+});
+
+loader.load('js/Cube.js', function (geometry, materials) {
+    var material = new THREE.MeshBasicMaterial( {color: COLOR_BLACK} );
+    var cube = new THREE.Mesh( geometry, material );
+    cube.position = new THREE.Vector3(0,0,0);
+    scene.add(cube);
+});
 
 render();
 
