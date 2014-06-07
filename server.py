@@ -2,6 +2,7 @@ import checkers
 import config
 import ws4py
 import cherrypy
+import json
 from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool
 
 cherrypy.config.update({'server.socket_port': 9000})
@@ -13,21 +14,23 @@ class server(ws4py.websocket.WebSocket):
 
     def received_message(self, message):
         #self.send(message.data, message.is_binary)
-
-        self.MsgHandler(message.data)
-
         print "message received."
+        if(self.MsgHandler != None):
+            self.MsgHandler(message.data)
+        else:
+            response = {}
+            response['result'] = True
+            self.send(json.dumps(response))
 
+            # Assuming we've received a JOIN MSG.
+            human = checkers.HumanPlayer(config.WHITE, checkers.game.board.checkers[config.WHITE], checkers.game.board, self)
+            comp = checkers.CompPlayer(config.WHITE, checkers.game.board.checkers[config.BLACK], checkers.game.board)
+            checkers.game.JoinPlayer(human)
+            checkers.game.JoinPlayer(comp)
     def opened(self):
-        global game
+        self.MsgHandler = None
         print "connection opened."
-
-        game = checkers.Game()
-        human = checkers.HumanPlayer(config.WHITE, game.board.checkers[config.WHITE], game.board, self)
-        comp = checkers.CompPlayer(config.WHITE, game.board.checkers[config.BLACK], game.board)
-        game.JoinPlayer(human)
-        game.JoinPlayer(comp)
-        game.GameLoop()
+        checkers.game = checkers.Game()
 
     def closed(self, code, reason=None):
         print "connection closed."

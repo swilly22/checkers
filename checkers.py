@@ -20,7 +20,6 @@ class Play(object):
     def To(self):
         return self._to
 
-
 class Player(object):
     __metaclass__ = ABCMeta
     def __init__(self, _color, _checkers, _game_board):
@@ -45,7 +44,14 @@ class Player(object):
         pass
 
     @abstractmethod
+    def Wait(self):
+        pass
+
+    @abstractmethod
     def JoinedGame(self):
+        pass
+
+    def OpponentMove(self, src, dest):
         pass
 
     def AllMoves(self):
@@ -69,7 +75,7 @@ class Player(object):
         self.subscribers.append(subscriber)
 
     def FireMove(self, src, dest):
-        for subscriber in subscribers:
+        for subscriber in self.subscribers:
             subscriber(src, dest)
 
 class HumanPlayer(Player):
@@ -82,10 +88,31 @@ class HumanPlayer(Player):
 
     def Play(self):
         # Send message to player, letting him / her know its her turn to play.
+        response = {}
+        response['fromServer'] = True
+        response['action'] = config.PLAY
+        self.socket.send(json.dumps(response))
+        pass
+
+    def Wait(self):
+        # Send message to player, letting him / her know its her turn to play.
+        response = {}
+        response['fromServer'] = True
+        response['action'] = config.WAIT
+        self.socket.send(json.dumps(response))
         pass
 
     def JoinedGame(self):
         pass
+
+    def OpponentMove(self, src, dest):
+        # Send message to player, letting him / her know its her turn to play.
+        response = {}
+        response['fromServer'] = True
+        response['action'] = config.MOVE
+        response['src'] = src
+        response['dest'] = dest
+        self.socket.send(json.dumps(response))
 
     # TODO, move this Method to some place else.
     def InitialBoard(self):
@@ -110,7 +137,7 @@ class HumanPlayer(Player):
 
         elif (request['action'] == config.POSSIBLE_MOVES):
             piecePosition = request['piece_position']
-            piece = self.game.board[piecePosition['x']][piecePosition['y']]
+            piece = self.game_board[piecePosition['x']][piecePosition['y']]
             if piece == None:
                 print "No piece at given position."
                 response = {}
@@ -130,17 +157,17 @@ class HumanPlayer(Player):
         elif (request['action'] == config.MOVE):
             src = point.Point(request['from']['x'], request['from']['y'])
             dest = point.Point(request['to']['x'], request['to']['y'])
-            piece = self.game.board[src.x][src.y]
+            piece = self.game_board[src.x][src.y]
             if piece.Color != self.color:
                 print "You don't own this piece."
                 response = {}
                 response['error'] = 'You do not own this piece.'
                 self.socket.send(json.dumps(response))
             else:
-                res = self.game.board.Move(src, dest)
+                res = self.game_board.Move(src, dest)
                 response = {}
                 response['result'] = res
-                self.send(json.dumps(response))
+                self.socket.send(json.dumps(response))
                 self.FireMove(src, dest)
 
         else:
@@ -202,6 +229,9 @@ class CompPlayer(Player):
             winRatio = float(wins) / (wins + losses)
             loseRatio = 1 - winRatio
             print ("%s\t%d\t%d\t%f\t%f")% (checker.Position, wins, losses, winRatio, loseRatio)
+
+    def Wait(self):
+        pass
 
     def JoinedGame(self):
         pass
@@ -269,9 +299,11 @@ class Game(object):
             self.players[1].RegisterOnMove(self.OnMove)
 
             self.currentPlayer = self.players[0]
+            self.GameLoop()
 
     def ChangeTurn(self):
         # Change turn.
+        self.currentPlayer.Wait()
         if self.currentPlayer == self.players[0]:
             self.currentPlayer = self.players[1]
         else:
@@ -279,7 +311,7 @@ class Game(object):
 
     def OnMove(self, src, dest):
         # Update other player about the move.
-        self.currentPlayer.opponent.Update(src, dest)
+        self.currentPlayer.opponent.OpponentMove(src, dest)
 
         if(move.eat == True and self.currentPlayer.CanEat()):
             # Keep eating...
