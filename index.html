@@ -35,15 +35,15 @@ function BoardToSpaceCords(position) {
     cellX = (BOARD_WIDTH / 8) / 2 ;
     cellY = (BOARD_HEIGHT / 8) / 2;
 
-    x = origin.x + (position.x * cellX * 2) + cellX;
-    y = origin.y + (position.y * cellY * 2) + cellY;
-    offset = new THREE.Vector3(y, x, 0);
+    row = origin.x + (position.x * cellX * 2) + cellX;
+    col = origin.z + (position.y * cellY * 2) + cellY;
+    offset = new THREE.Vector3(-col, 0, row);
     return offset;
 }
 
 function SpaceToBoardCords(position) {
-  row = Math.floor(position.y);
-  col = Math.floor(position.x);
+  row = Math.floor(position.z);
+  col = Math.floor(-position.x);
 
   return {'x' : row, 'y' : col};
 }
@@ -142,7 +142,6 @@ function Checker(position, color)
   this.world_position = BoardToSpaceCords(this.board_position);
   this.cylinder = CreateCylinder(BOARD_WIDTH / 20 , BOARD_WIDTH / 20, 0.2, 32, this.color);
   this.cylinder.position = this.world_position;
-  this.cylinder.rotation.x = Math.PI / 2;
   this.cylinder.checker = this;
   this.Selected = Selected;
   this.UnSelect = UnSelect;
@@ -196,8 +195,10 @@ function CreateFloor() {
     floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping; 
     floorTexture.repeat.set(2, 2);
     var floorMaterial = new THREE.MeshBasicMaterial( { map: floorTexture, side: THREE.DoubleSide } );
-    var floorGeometry = new THREE.PlaneGeometry(BOARD_WIDTH, BOARD_HEIGHT, 1, 1);
+    var floorGeometry = new THREE.PlaneGeometry(BOARD_WIDTH, BOARD_HEIGHT);
     var floor = new THREE.Mesh(floorGeometry, floorMaterial);
+    floor.rotation.x = Radians(90);
+    floor.position = new THREE.Vector3(-BOARD_WIDTH/2, 0, BOARD_HEIGHT/2);
     return floor;
 }
 
@@ -216,18 +217,20 @@ function Init() {
     renderer = new THREE.WebGLRenderer();
     scene = new THREE.Scene();
 
-    camera =  new THREE.PerspectiveCamera( VIEW_ANGLE, ASPECT, NEAR, FAR);
+    camera = new THREE.PerspectiveCamera( VIEW_ANGLE, ASPECT, NEAR, FAR);
     //controls = new THREE.OrbitControls(camera, renderer.domElement);
 
-    // add the camera to the scene.
-    scene.add(camera);
 
     // the camera starts at 0,0,0
     // so pull it back.
-    camera.position = new THREE.Vector3(BOARD_WIDTH / 2, -4, 6);
+    camera.position = new THREE.Vector3(-BOARD_WIDTH / 2, 17, BOARD_HEIGHT / 2);
     //camera.lookAt(scene.position);
-    var center = new THREE.Vector3(BOARD_WIDTH / 2, BOARD_HEIGHT / 2, 0);
+    var center = new THREE.Vector3(-BOARD_WIDTH/2, 0, BOARD_HEIGHT/2);
     camera.lookAt(center);
+    camera.rotateZ(Radians(90));
+    
+    // add the camera to the scene.
+    scene.add(camera);
 
     // create a point light
     var pointLight = new THREE.PointLight(0xFFFFFF);
@@ -263,8 +266,8 @@ function Init() {
 
     // FLOOR
     var floor = CreateFloor();
-    floor.position.x = BOARD_WIDTH / 2;
-    floor.position.y = BOARD_HEIGHT / 2;
+    //floor.position.x = BOARD_WIDTH / 2;
+    //floor.position.y = BOARD_HEIGHT / 2;
     //floor.rotation.x = -Math.PI / 4;
     scene.add(floor);
 }
@@ -394,7 +397,7 @@ function onDocumentMouseMove( event )
     var vector = new THREE.Vector3(x, y, 0.5);
     projector.unprojectVector(vector, camera);
     var dir = vector.sub(camera.position).normalize();
-    var distance = - camera.position.z / dir.z;
+    var distance = - camera.position.y / dir.y;
 
     // Determin mouse position within the world.
     var pos = camera.position.clone().add(dir.multiplyScalar(distance));
@@ -625,15 +628,15 @@ var server = new Server();
 server.InitWSConnection();
 
 
-/*var loader = new THREE.JSONLoader;
+var loader = new THREE.JSONLoader;
 loader.load('js/Frame.js', function (geometry, materials) {
-    var material = new THREE.MeshBasicMaterial( {color: COLOR_WHITE} );
+    var material = new THREE.MeshBasicMaterial( {color: COLOR_WHITE,  wireframe: true} );
     var frame = new THREE.Mesh( geometry, material );
-    frame.position = new THREE.Vector3(0,0,0);
+    frame.position = new THREE.Vector3(-BOARD_WIDTH/2, 0, BOARD_HEIGHT/2);
     scene.add(frame);
 });
 
-loader.load('js/Cube.js', function (geometry, materials) {
+/*loader.load('js/Cube.js', function (geometry, materials) {
     var material = new THREE.MeshBasicMaterial( {color: COLOR_BLACK} );
     var cube = new THREE.Mesh( geometry, material );
     cube.position = new THREE.Vector3(0,0,0);
