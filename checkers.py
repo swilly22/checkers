@@ -4,6 +4,7 @@ import point
 import config
 import Tree
 import json
+import random
 from abc import ABCMeta, abstractmethod
 
 
@@ -100,7 +101,6 @@ class HumanPlayer(Player):
         response['fromServer'] = True
         response['action'] = config.WAIT
         self.socket.send(json.dumps(response))
-        pass
 
     def JoinedGame(self):
         pass
@@ -110,8 +110,12 @@ class HumanPlayer(Player):
         response = {}
         response['fromServer'] = True
         response['action'] = config.MOVE
-        response['src'] = src
-        response['dest'] = dest
+        response['src'] = {}
+        response['dest'] = {}
+        response['src']['x'] = src.x
+        response['src']['y'] = src.y
+        response['dest']['x'] = dest.x
+        response['dest']['y'] = dest.y
         self.socket.send(json.dumps(response))
 
     # TODO, move this Method to some place else.
@@ -220,6 +224,9 @@ class CompPlayer(Player):
 
         print("Position\twins\tlosses\twin ration\tlose ration")
 
+        # TODO think how to pick the 'best' play.
+        SelectedMove = None
+        MaxDiff = 0
         for item in forest:
             checkerPosition = item[0]
             tree = item[1]
@@ -229,6 +236,24 @@ class CompPlayer(Player):
             winRatio = float(wins) / (wins + losses)
             loseRatio = 1 - winRatio
             print ("%s\t%d\t%d\t%f\t%f")% (checker.Position, wins, losses, winRatio, loseRatio)
+            if((wins - losses) > MaxDiff):
+                MaxDiff = (wins - losses)
+                tmp = checker.PossibleMoves()
+                tmp = tmp[random.randint(0, len(tmp)-1)] # No wisdom here...
+                tmp = tmp[0] # Select first move from selected play.
+                SelectedMove = (tmp['from'], tmp['to'])
+
+            # TODO maintain information about the move within the node.
+            #for node in tree.nodes:
+                #wins = node.Value[0]
+                #losses = node.Value[1]
+                #diff = wins - losses
+
+        # Perform your move.
+        src = SelectedMove[0]
+        dest = SelectedMove[1]
+        res = self.game_board.Move(src, dest)
+        self.FireMove(src, dest)
 
     def Wait(self):
         pass
@@ -313,7 +338,10 @@ class Game(object):
         # Update other player about the move.
         self.currentPlayer.opponent.OpponentMove(src, dest)
 
-        if(move.eat == True and self.currentPlayer.CanEat()):
+        # For the time being, where there's no queen checker.
+        # We'll figure out if a move was an "eat" move by the distance of the move.
+        bEat = abs (src.x - dest.x) == 2
+        if(bEat == True and self.currentPlayer.CanEat()):
             # Keep eating...
             self.currentPlayer.Play()
             return

@@ -163,7 +163,7 @@ function SetColor(color) {
 
 function AnimateMove(position) {
   this.world_position = position;
-  selected_checker.cylinder.position = this.world_position;
+  this.cylinder.position = this.world_position;
 }
 
 function Move(position) {
@@ -220,14 +220,18 @@ function Init() {
     camera = new THREE.PerspectiveCamera( VIEW_ANGLE, ASPECT, NEAR, FAR);
     //controls = new THREE.OrbitControls(camera, renderer.domElement);
 
+    // Set camera up.
+    console.log(camera.up);
+    camera.up.set(0, 1, 0);
+    console.log(camera.up);
 
-    // the camera starts at 0,0,0
-    // so pull it back.
-    camera.position = new THREE.Vector3(-BOARD_WIDTH / 2, 17, BOARD_HEIGHT / 2);
+    //camera.position = new THREE.Vector3(-BOARD_WIDTH / 2, 17, BOARD_HEIGHT / 2);
+    camera.position = new THREE.Vector3(-BOARD_WIDTH / 2, 9, -6);
     //camera.lookAt(scene.position);
     var center = new THREE.Vector3(-BOARD_WIDTH/2, 0, BOARD_HEIGHT/2);
+    //var center = new THREE.Vector3(0, 0, 0);
     camera.lookAt(center);
-    camera.rotateZ(Radians(90));
+    //camera.rotateZ(Radians(90));
     
     // add the camera to the scene.
     scene.add(camera);
@@ -243,8 +247,33 @@ function Init() {
     // add to the scene
     scene.add(pointLight);
 
-    var axisHelper = new THREE.AxisHelper( WIDTH / 2 );
-    scene.add( axisHelper );
+    /*var axisHelper = new THREE.AxisHelper( WIDTH / 2 );
+    scene.add( axisHelper );*/
+
+    // Draw the X axis.
+    var material = new THREE.LineBasicMaterial({color: 0xff0000});
+    var geometry = new THREE.Geometry();
+    geometry.vertices.push(new THREE.Vector3(-10, 0, 0));
+    geometry.vertices.push(new THREE.Vector3(10, 0, 0));  
+    var line = new THREE.Line(geometry, material);
+    scene.add(line);
+
+    // Draw Y axis.
+    material = new THREE.LineBasicMaterial({color: 0x00ff00});
+    geometry = new THREE.Geometry();
+    geometry.vertices.push(new THREE.Vector3(0, -10, 0));
+    geometry.vertices.push(new THREE.Vector3(0, 10, 0));  
+    line = new THREE.Line(geometry, material);
+    scene.add(line);
+
+    // Draw Z axis.
+    material = new THREE.LineBasicMaterial({color: 0x0000ff});
+    geometry = new THREE.Geometry();
+    geometry.vertices.push(new THREE.Vector3(0, 0, -10));
+    geometry.vertices.push(new THREE.Vector3(0, 0, 10));  
+    line = new THREE.Line(geometry, material);
+    scene.add(line);
+
 
     // initialize object to perform world/screen calculations
     projector = new THREE.Projector();
@@ -522,6 +551,7 @@ function ActionHandler(data) {
     case ACTIONS.WAIT:
     console.log("waiting for other player to make his move.");
       bMyTurn = false;
+      break;
 
     default:
       console.log("Unknow action " + data.action);
