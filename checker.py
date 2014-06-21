@@ -1,8 +1,10 @@
 import config
 import point
 import board
+from abc import ABCMeta, abstractmethod
 
 class Checker(object):
+    __metaclass__ = ABCMeta
     def __init__(self, _color, location, _game_board):
         self.color = _color
         self.position = location
@@ -121,6 +123,85 @@ class Checker(object):
             eat_moves = [eat_move for eat_move in moves if eat_move[0]['eat'] == True]
 
             # See if we can eat more than one checker in this
+            tmp = []  # tmp is here because we cannot modify iterated list.
+            for eat_move in eat_moves:
+                previous_position = self.Position
+                self.game_board.Move(self.Position, eat_move[0]['to'])
+                additionalMoves = self.PossibleMoves(True)
+                if (len(additionalMoves) > 0):
+                    for addition in additionalMoves:
+                        tmp.append(eat_move + addition)  # Concat arrays.
+                else:
+                    tmp.append(eat_move)
+
+                self.game_board.UndoMove(previous_position, eat_move[0]['to'])
+
+            eat_moves = tmp
+            return eat_moves
+
+        else:
+            return moves
+
+class Queen(Checker):
+    def __init__(self, _color, location, _game_board):
+        # Call parent constructor.
+        Checker.__init__(self, _color, location, _game_board)
+
+    def CanEat(self):
+        # Can we eat?
+        bCanEat = False
+
+        for XDirection in [-1,1]:
+            for YDirection in [-1,1]:
+                currentPosition = self.position
+
+                while(self.game_board.WithinBounds(currentPosition.x, currentPosition.y)):
+                    piece = self.game_board[currentPosition.x + XDirection][currentPosition.y + YDirection]
+                    if(piece != None and
+                       piece.Color != self.Color and
+                       self.game_board.WithinBounds(currentPosition.x + 2 * XDirection, currentPosition.y + 2 * YDirection) and
+                       self.game_board[currentPosition.x + 2 * XDirection][currentPosition.y + 2 * YDirection] == None):
+                            return True
+
+                    # Move down and right.
+                    currentPosition.x += XDirection
+                    currentPosition.y += YDirection
+
+        return False
+
+    def PossibleMoves(self, eat_mode=False):
+
+        moves = []
+        bMustEat = eat_mode
+
+        for XDirection in [-1,1]:
+            for YDirection in [-1,1]:
+                currentPosition = self.position
+                while(board.Board.WithinBounds(currentPosition.x, currentPosition.y)):
+                    # Position empty
+                    if (board.Board.WithinBounds(currentPosition.x + XDirection,
+                                                 currentPosition.y + YDirection)):
+                        piece = self.game_board[currentPosition.x + XDirection][currentPosition.y + YDirection]
+                        if(piece == None):
+                            moves.append([{'from': currentPosition,
+                                           'to': point.Point(currentPosition.x + XDirection, currentPosition.y + YDirection),
+                                           'eat': False}])
+                        # Enemy ahead
+                        elif (piece.Color != self.Color):
+                            # Is it possible to EAT ?
+                            if ((board.Board.WithinBounds(currentPosition.x + 2 * XDirection, currentPosition.y + 2 * YDirection)) and
+                                    (self.game_board[currentPosition.x + 2 * XDirection][currentPosition.y + 2 * YDirection] == None)):
+                                bMustEat = True
+                                moves.append([{'from': currentPosition,
+                                               'to': point.Point(currentPosition.x + 2 * XDirection,
+                                                                 currentPosition.y + 2 * YDirection),
+                                               'eat': True}])
+
+        if (bMustEat == True):
+            # Remove all NOT eat moves.
+            eat_moves = [eat_move for eat_move in moves if eat_move[0]['eat'] == True]
+
+            # See if we can eat more than one checker.
             tmp = []  # tmp is here because we cannot modify iterated list.
             for eat_move in eat_moves:
                 previous_position = self.Position

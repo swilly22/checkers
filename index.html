@@ -108,8 +108,8 @@ function Init() {
     // add to the scene
     scene.add(pointLight);
 
-    var axisHelper = new THREE.AxisHelper( WIDTH / 2 );
-    scene.add( axisHelper );
+    /*var axisHelper = new THREE.AxisHelper( WIDTH / 2 );
+    scene.add( axisHelper );*/
 
     // initialize object to perform world/screen calculations
     projector = new THREE.Projector();
@@ -285,14 +285,12 @@ function update()
   // create a Ray with origin at the mouse position
   //   and direction into the scene (camera direction)
   var vector = new THREE.Vector3( mouse.x, mouse.y, 1 );
+  //var vector = new THREE.Vector3(mouse.x, 1, mouse.y);
   projector.unprojectVector(vector, camera);
   var ray = new THREE.Raycaster(camera.position, vector.sub( camera.position ).normalize());
-
+  
   // create an array containing all objects in the scene with which the ray intersects
   var intersects = ray.intersectObjects( scene.children );
-
-  // INTERSECTED = the object in the scene currently closest to the camera 
-  //   and intersected by the Ray projected from the mouse position 
 
   // if there is one (or more) intersections
   if ( intersects.length > 0 )
@@ -356,6 +354,7 @@ loader.load('js/Frame.js', function (geometry, materials) {
 });*/
 
 render();
+
 
 </script>
 </body>

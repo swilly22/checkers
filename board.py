@@ -41,7 +41,7 @@ class Board(object):
                     self.checkers[config.BLACK].append(piece)
                     self.board[x][y] = piece
 
-    def UndoMove(self, source, dest):
+    def UndoMove(self, source, dest, eat=False):
         if ((source.x == dest.x) and (source.y == dest.y)):
             print("Illegal move, you're not going anywhere!")
             return
@@ -55,7 +55,7 @@ class Board(object):
             return
 
         if (self[dest.x][dest.y] == None):
-            print("pice missing, UndoMove")
+            print("piece missing, UndoMove")
             return
 
         if (self[source.x][source.y] != None):
@@ -66,38 +66,73 @@ class Board(object):
             print("Illegal move, UndoMove source.x == dest.x) or (source.y == dest.y")
             return
 
-        # distnce should be either 1 or 2, for the time being.
-        if (abs(source.x - dest.x) > 2) or (abs(source.y - dest.y) > 2):
-            print("Impossible move at the moment.")
-            return
-
         piece = self[dest.x][dest.y]
 
-        # Is it a double step?
-        if (abs(source.x - dest.x) == 2):
-            # Make sure move is legal.
-            midX = int(math.ceil((source.x + dest.x) / 2))
-            midY = int(math.ceil((source.y + dest.y) / 2))
-            dead = self[midX][midY]
-
-            if (dead != None):
-                print("Expecting empty spot.")
+        # check if we're undoing a queen's move or a simple checker's move.
+        if(piece.__class__.__name__ == "checker"):
+            # distance should be either 1 or 2
+            if (abs(source.x - dest.x) > 2) or (abs(source.y - dest.y) > 2):
+                print("Impossible move at the moment.")
                 return
 
-            if (piece.Color == config.WHITE):
-                dead = checker.Checker(config.BLACK, point.Point(midX, midY), self)
-            else:
-                dead = checker.Checker(config.WHITE, point.Point(midX, midY), self)
+            # Is it a double step?
+            if (abs(source.x - dest.x) == 2):
+                # Make sure move is legal.
+                midX = int(math.ceil((source.x + dest.x) / 2))
+                midY = int(math.ceil((source.y + dest.y) / 2))
+                dead = self[midX][midY]
 
-            # NOTE there's no check for move direction here!, check is made in the checker class.
-            self.board[midX][midY] = dead
-            self.checkers[dead.Color].append(dead)
+                if (dead != None):
+                    print("Expecting empty spot.")
+                    return
 
-        else:  # This is a single step make sure move direction is correct for selected piece.
-            if piece.AdvanceDirection != (dest.x - source.x):
-                print "Your going in the wrong direction"
-                return
-        
+                if (piece.Color == config.WHITE):
+                    dead = checker.Checker(config.BLACK, point.Point(midX, midY), self)
+                else:
+                    dead = checker.Checker(config.WHITE, point.Point(midX, midY), self)
+
+                # NOTE there's no check for move direction here!, check is made in the checker class.
+                self.board[midX][midY] = dead
+                self.checkers[dead.Color].append(dead)
+
+            else:  # This is a single step make sure move direction is correct for selected piece.
+                if piece.AdvanceDirection != (dest.x - source.x):
+                    print "Your going in the wrong direction"
+                    return
+        # Queen.
+        else:
+            if(eat):
+                #Determine move direction.
+                YDirection = 0
+                XDirection = 0
+                if(source.y > dest.y):
+                    YDirection = +1
+                else:
+                    YDirection = 1
+
+                if source.x > dest.x:
+                    XDirection = +1
+                else:
+                    XDirection = 1
+
+                deadXPos = dest.x + XDirection
+                deadYPos = dest.y + YDirection
+                dead = self[deadXPos][deadYPos]
+
+                if (dead != None):
+                    print("Expecting empty spot.")
+                    return
+
+                color = config.WHITE
+                if (piece.Color == config.WHITE):
+                    color = config.BLACK
+
+                dead = checker.Checker(color, point.Point(deadXPos, deadYPos), self)
+
+                # NOTE there's no check for move direction here!, check is made in the checker class.
+                self.board[deadXPos][deadYPos] = dead
+                self.checkers[dead.Color].append(dead)
+
         piece.Move(source)
         self.board[source.x][source.y] = piece
         self.board[dest.x][dest.y] = None
