@@ -3,9 +3,10 @@ import config
 import ws4py
 import cherrypy
 import json
+import os
 from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool
 
-cherrypy.config.update({'server.socket_port': 9000})
+cherrypy.config.update({'server.socket_port': 80})
 WebSocketPlugin(cherrypy.engine).subscribe()
 cherrypy.tools.websocket = WebSocketTool()
 
@@ -27,6 +28,7 @@ class server(ws4py.websocket.WebSocket):
             comp = checkers.CompPlayer(config.WHITE, checkers.game.board.checkers[config.BLACK], checkers.game.board)
             checkers.game.JoinPlayer(human)
             checkers.game.JoinPlayer(comp)
+
     def opened(self):
         self.MsgHandler = None
         print "connection opened."
@@ -37,9 +39,15 @@ class server(ws4py.websocket.WebSocket):
 
 
 class Root(object):
+
+    def __init__(self):
+        hIndex = open("index.html", "r")
+        self.index_page = hIndex.read()
+        hIndex.close()
+
     @cherrypy.expose
     def index(self):
-        return 'some HTML with a websocket javascript connection'
+        return self.index_page
 
     @cherrypy.expose
     def ws(self):
@@ -47,4 +55,7 @@ class Root(object):
         handler = cherrypy.request.ws_handler
 
 
-cherrypy.quickstart(Root(), '/', config={'/ws': {'tools.websocket.on': True, 'tools.websocket.handler_cls': server}})
+cherrypy.quickstart(Root(), '/', config={'/ws': {'tools.websocket.on': True, 'tools.websocket.handler_cls': server},
+                                         '/': {'tools.sessions.on': True, 'tools.staticdir.root': os.path.abspath(os.getcwd())},
+                                         '/js': {'tools.staticdir.on': True, 'tools.staticdir.dir': 'C:\\dev\\checkers\\js\\'},
+                                         '/images': {'tools.staticdir.on': True, 'tools.staticdir.dir': 'C:\\dev\\checkers\\images\\'}})

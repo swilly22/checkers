@@ -152,6 +152,12 @@ class HumanPlayer(Player):
                 response = {}
                 response['error'] = 'You do not own this piece.'
                 self.socket.send(json.dumps(response))
+            elif self.CanEat() and not piece.CanEat():
+                print "Player must eat, this piece can't."
+                response = {}
+                response['error'] = "You must eat"
+                response['possible_moves'] = []
+                self.socket.send(json.dumps(response))
             else:
                 moves = piece.PossibleMoves()
                 response = {}
@@ -201,7 +207,7 @@ class CompPlayer(Player):
             checkersPositionsList.append(checker.Position)
 
         forest = []
-        # freach checker to concider, see what moves can we perform.
+        # freach checker to consider, see what moves can we perform.
         for checkerPos in checkersPositionsList:
             checker = self.game_board[checkerPos.x][checkerPos.y]
 
@@ -215,6 +221,7 @@ class CompPlayer(Player):
                 else:
                     node = root.AddNode([0, 0])
 
+                node.move_to = move[0]['to']
                 self.game_board.MultipleMove(move)
                 self.LookAHead(node, 4)
                 self.game_board.MultipleUndoMove(move)
@@ -225,8 +232,10 @@ class CompPlayer(Player):
         print("Position\twins\tlosses\twin ration\tlose ration")
 
         # TODO think how to pick the 'best' play.
-        SelectedMove = None
-        MaxDiff = 0
+        SelectedTree = None
+        MaxDiff = float("-inf") # - infinity.
+        src = None
+        dest = None
         for item in forest:
             checkerPosition = item[0]
             tree = item[1]
@@ -238,20 +247,19 @@ class CompPlayer(Player):
             print ("%s\t%d\t%d\t%f\t%f")% (checker.Position, wins, losses, winRatio, loseRatio)
             if((wins - losses) > MaxDiff):
                 MaxDiff = (wins - losses)
-                tmp = checker.PossibleMoves()
-                tmp = tmp[random.randint(0, len(tmp)-1)] # No wisdom here...
-                tmp = tmp[0] # Select first move from selected play.
-                SelectedMove = (tmp['from'], tmp['to'])
+                SelectedTree = tree
+                src = checkerPosition
 
-            # TODO maintain information about the move within the node.
-            #for node in tree.nodes:
-                #wins = node.Value[0]
-                #losses = node.Value[1]
-                #diff = wins - losses
+        MaxDiff = float("-inf") # - infinity.
+        for node in SelectedTree.Nodes:
+            wins = node.Value[0]
+            losses = node.Value[1]
+            diff = wins - losses
+            if(diff > MaxDiff):
+                MaxDiff = diff
+                dest = node.move_to
 
-        # Perform your move.
-        src = SelectedMove[0]
-        dest = SelectedMove[1]
+        # Perform move.
         res = self.game_board.Move(src, dest)
         self.FireMove(src, dest)
 

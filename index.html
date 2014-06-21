@@ -129,6 +129,7 @@ function Init() {
     // when the mouse moves, call the given function
     document.addEventListener( 'mouseup', onDocumentMouseUp, false );
 
+    window.addEventListener('resize', onWindowResize, false);
     // FLOOR
     var floor = CreateFloor();
     scene.add(floor);
@@ -143,8 +144,7 @@ function onDocumentMouseDown( event )
   }
 }
 
-function onDocumentMouseUp(event)
-{
+function onDocumentMouseUp(event) {
   if(!drag) { return; }
   drag = false;
 
@@ -230,8 +230,7 @@ function onDocumentMouseUp(event)
   });
 }
 
-function onDocumentMouseMove( event ) 
-{
+function onDocumentMouseMove(event)  {
   // the following line would stop any other event handler from firing
   // (such as the mouse's TrackballControls)
   // event.preventDefault();
@@ -255,6 +254,16 @@ function onDocumentMouseMove( event )
     var pos = camera.position.clone().add(dir.multiplyScalar(distance));
     selected_checker.AnimateMove(pos);
   }
+}
+
+function onWindowResize(event) {
+  WIDTH = window.innerWidth;
+  HEIGHT = window.innerHeight;
+
+  camera.aspect = WIDTH / HEIGHT;
+  camera.updateProjectionMatrix();
+
+  renderer.setSize(WIDTH, HEIGHT);
 }
 
 function render() {
@@ -315,15 +324,10 @@ function update()
         selected_checker.Selected();
       }
     }
-
-    // set a new color for closest object
-    //INTERSECTED.material.color.setHex(0xff0000);
-    //pendulum.bob.material.color.setHex(0xff0000);
   } 
   else // there are no intersections
   {
     selected_checker = null;
-    //pendulum.bob.material.color.setHex(0x00cc00);
   }
 }
 
