@@ -28,18 +28,19 @@ class Board(object):
         for x in range(3):
             for y in range(config.BOARD_WIDTH):
                 if ((x + y) % 2 == 0):
-                    piece = checker.Checker(config.WHITE, point.Point(x, y), self)
-
-                    self.checkers[config.WHITE].append(piece)
-                    self.board[x][y] = piece
+                    location = point.Point(x, y)
+                    piece = checker.Checker(config.WHITE, location, self)
+                    self.AddPiece(piece, location)
 
         # Place whites.
         for x in range(5, 8):
             for y in range(config.BOARD_HEIGHT):
                 if ((x + y) % 2 == 0):
-                    piece = checker.Checker(config.BLACK, point.Point(x, y), self)
-                    self.checkers[config.BLACK].append(piece)
-                    self.board[x][y] = piece
+                    location = point.Point(x, y)
+                    piece = checker.Checker(config.BLACK, location, self)
+                    self.AddPiece(piece, location)
+                    #self.checkers[config.BLACK].append(piece)
+                    #self.board[x][y] = piece
 
     def UndoMove(self, source, dest, eat=False):
         if ((source.x == dest.x) and (source.y == dest.y)):
@@ -69,7 +70,7 @@ class Board(object):
         piece = self[dest.x][dest.y]
 
         # check if we're undoing a queen's move or a simple checker's move.
-        if(piece.__class__.__name__ == "checker"):
+        if(piece.__class__.__name__ == "Checker"):
             # distance should be either 1 or 2
             if (abs(source.x - dest.x) > 2) or (abs(source.y - dest.y) > 2):
                 print("Impossible move at the moment.")
@@ -159,11 +160,11 @@ class Board(object):
             return False
 
         if (self[dest.x][dest.y] != None):
-            print("AAA Illegal move from %d,%d to %d,%d" % (source.x, source.y, dest.x, dest.y))
+            print("Illegal move from %d,%d to %d,%d" % (source.x, source.y, dest.x, dest.y))
             return False
 
         if (source.x == dest.x) or (source.y == dest.y):
-            print("BBB Illegal move")
+            print("Illegal move")
             return False
 
         # distance should be either 1 or 2, for the time being.
@@ -217,14 +218,15 @@ class Board(object):
         # Remove checker from board.
         self.board[location.x][location.y] = None
 
+    def AddPiece(self, piece, location):
+        self.checkers[piece.Color].append(piece)
+        self.board[location.x][location.y] = piece
 
     def __getitem__(self, index):
         return self.board[index]
 
-
     def CopyBlankBoard(self):
         return list(self.blank_board)
-
 
     def Print(self):
         board = self.CopyBlankBoard()

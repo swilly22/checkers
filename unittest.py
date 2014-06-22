@@ -193,6 +193,7 @@ def TestUndoMove():
 	assert(game_board[5][5] != None)
 
 	game_board.UndoMove(point.Point(3,7), point.Point(5,5))
+	print(len(blacks))
 	assert(len(blacks) == 12)
 	assert(game_board[4][6] != None)
 	assert(game_board[3][7] != None)

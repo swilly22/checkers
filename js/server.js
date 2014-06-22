@@ -1,4 +1,5 @@
-var ACTIONS = {INIT : 0, POSSIBLE_MOVES : 1, MOVE : 2, PLAY : 3, WAIT : 4, JOIN : 5,}
+var ACTIONS = {INIT : 0, POSSIBLE_MOVES : 1, MOVE : 2, PLAY : 3, WAIT : 4,
+                JOIN : 5, QUEENED : 6};
 
 function Server() {    
   this.address = 'ws://127.0.0.1:80/ws';
@@ -24,14 +25,27 @@ function ActionHandler(data) {
       break;
 
     case ACTIONS.PLAY:
-    console.log("your turn");
+      console.log("your turn");
       bMyTurn = true;
       break;
 
     case ACTIONS.WAIT:
-    console.log("waiting for other player to make his move.");
+      console.log("waiting for other player to make his move.");
       bMyTurn = false;
       break;
+
+    case ACTIONS.QUEENED:
+      console.log("queened");
+      var piece = board.checkers[data.position.x][data.position.y];
+      if(piece == null) {
+        console.log("Error, piece missing, probebly out of sync.");
+        // TODO Request board.
+        break;
+      }
+      var color = piece.color;
+      board.RemoveChecker(data.position);
+      var queen = Queen(data.position, color);
+      board.AddChecker(queen);
 
     default:
       console.log("Unknow action " + data.action);

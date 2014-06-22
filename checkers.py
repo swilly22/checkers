@@ -55,6 +55,9 @@ class Player(object):
     def OpponentMove(self, src, dest):
         pass
 
+    def Queened(self, position):
+        pass
+
     def AllMoves(self):
         eatersList = []  # List of 'eat' moves
         noneEatersList = []  # List of none 'eat' moves
@@ -96,10 +99,20 @@ class HumanPlayer(Player):
         pass
 
     def Wait(self):
-        # Send message to player, letting him / her know its her turn to play.
+        # Send message to player.
         response = {}
         response['fromServer'] = True
         response['action'] = config.WAIT
+        self.socket.send(json.dumps(response))
+
+    def Queened(self, position):
+        # Send message to player.
+        response = {}
+        response['fromServer'] = True
+        response['action'] = config.QUEENED
+        response['position'] = {}
+        response['position']['x'] = position.x
+        response['position']['y'] = position.y
         self.socket.send(json.dumps(response))
 
     def JoinedGame(self):
@@ -346,10 +359,25 @@ class Game(object):
         # Update other player about the move.
         self.currentPlayer.opponent.OpponentMove(src, dest)
 
-        # For the time being, where there's no queen checker.
+        # Did checker reached the end of the board? if so queen it.
+        bQueen = False
+        piece = self.board[dest.x][dest.y]
+        if(piece.__class__.__name__ == "Checker"):
+            if((piece.AdvanceDirection == 1 and piece.Position.x == config.BOARD_HEIGHT - 1) or
+            (piece.AdvanceDirection == -1 and piece.Position.x == 0)):
+                print("Queened!")
+                bQueen = True
+                queen = checker.Queen(piece.Color, dest, self.board)
+                # Remove old piece.
+                self.board.RemovePiece(dest)
+                # Add new queen.
+                self.board.AddPiece(queen, dest)
+                #Let player know he / she just got a new queen.
+                self.currentPlayer.Queened(dest)
+
         # We'll figure out if a move was an "eat" move by the distance of the move.
         bEat = abs (src.x - dest.x) == 2
-        if(bEat == True and self.currentPlayer.CanEat()):
+        if(bEat == True and self.currentPlayer.CanEat() and not bQueen):
             # Keep eating...
             self.currentPlayer.Play()
             return

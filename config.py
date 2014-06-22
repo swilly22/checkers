@@ -10,3 +10,4 @@ MOVE = 2
 PLAY = 3
 WAIT = 4
 JOIN = 5
+QUEENED = 6

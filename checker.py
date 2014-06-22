@@ -153,7 +153,7 @@ class Queen(Checker):
 
         for XDirection in [-1,1]:
             for YDirection in [-1,1]:
-                currentPosition = self.position
+                currentPosition = point.Point(self.position.x, self.position.y)
 
                 while(self.game_board.WithinBounds(currentPosition.x, currentPosition.y)):
                     piece = self.game_board[currentPosition.x + XDirection][currentPosition.y + YDirection]
@@ -164,8 +164,8 @@ class Queen(Checker):
                             return True
 
                     # Move down and right.
-                    currentPosition.x += XDirection
-                    currentPosition.y += YDirection
+                    currentPosition.x = currentPosition.x + XDirection
+                    currentPosition.y = currentPosition.y + YDirection
 
         return False
 

@@ -14,6 +14,21 @@ function Checker(position, color)
   this.SetColor = SetColor;
 }
 
+function Queen(position, color) {
+  this.color = color;
+  this.board_position = position;
+  this.world_position = BoardToSpaceCords(this.board_position);
+  this.cylinder = CreateCube(BOARD_WIDTH / 20 , BOARD_WIDTH / 20, BOARD_WIDTH / 20, this.color);
+  this.cylinder.position = this.world_position;
+  this.cylinder.checker = this;
+  this.Selected = Selected;
+  this.UnSelect = UnSelect;
+  this.Move = Move;
+  this.Remove = Remove;
+  this.AnimateMove = AnimateMove;
+  this.SetColor = SetColor; 
+}
+
 function Remove() {
   this.cylinder = null;
 }
@@ -66,4 +81,11 @@ function CreateCylinder(radiusTop, radiusBottom, height, segments, _color) {
     var material = new THREE.MeshBasicMaterial( {color: _color} );
     var cylinder = new THREE.Mesh( geometry, material );
     return cylinder;
+}
+
+function CreateCube(width, height, depth, _color) {
+  var geometry = new THREE.BoxGeometry(width, height, depth);
+  var material = new THREE.MeshBasicMaterial({color: _color});
+  var cube = new THREE.Mesh(geometry, material);
+  return cube;
 }
