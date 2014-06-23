@@ -30,7 +30,7 @@ function WithInBounds(position) {
   return true;
 }
 
-function AddChecker(position, color) {
+function AddChecker(type, position, color) {
   if(!this.WithInBounds(position)) {
     return false;
   }
@@ -40,9 +40,15 @@ function AddChecker(position, color) {
     return false;
   }
 
-  var checker = new Checker(position, color);
-  this.checkers[position.x][position.y] = checker;
-  scene.add(checker.cylinder);
+  if(type == "Checker") {
+    var piece = new Checker(position, color);
+  }
+  else {
+    var piece = new Queen(position, color);
+  }
+
+  this.checkers[position.x][position.y] = piece;
+  scene.add(piece.cylinder);
   return true;
 }
 

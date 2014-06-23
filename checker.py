@@ -164,8 +164,8 @@ class Queen(Checker):
                             return True
 
                     # Move down and right.
-                    currentPosition.x = currentPosition.x + XDirection
-                    currentPosition.y = currentPosition.y + YDirection
+                    currentPosition = point.Point(currentPosition.x + XDirection,
+                                                  currentPosition.y + YDirection)
 
         return False
 

@@ -21,11 +21,11 @@ function RequestBoard() {
 function HandleRequestBoard(data) {
   for(var idx = 0; idx < data.whites.length; idx++) {
     var piecePos = data.whites[idx];
-    board.AddChecker(piecePos, COLOR_WHITE);
+    board.AddChecker("Checker", piecePos, COLOR_WHITE);
   }
 
   for(var idx = 0; idx < data.blacks.length; idx++) {
     var piecePos = data.blacks[idx];
-    board.AddChecker(piecePos, COLOR_BLACK);
+    board.AddChecker("Checker", piecePos, COLOR_BLACK);
   }
 }
