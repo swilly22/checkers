@@ -43,28 +43,28 @@ class Board(object):
                     #self.board[x][y] = piece
 
     def UndoMove(self, source, dest, eat=False):
-        if ((source.x == dest.x) and (source.y == dest.y)):
-            print("Illegal move, you're not going anywhere!")
+        if ((source.x == dest.x) or (source.y == dest.y)):
+            print("UndoMove, Illegal move, you're not going anywhere!")
             return
 
         if (not self.WithinBounds(source.x, source.y)):
-            print("Illegal move, UndoMove WithinBounds")
+            print("UndoMove, Illegal move, UndoMove WithinBounds")
             return
 
         if (not self.WithinBounds(dest.x, dest.y)):
-            print("Illegal move, UndoMove WithinBounds")
+            print("UndoMove, Illegal move, UndoMove WithinBounds")
             return
 
         if (self[dest.x][dest.y] == None):
-            print("piece missing, UndoMove")
+            print("UndoMove, piece missing, UndoMove")
             return
 
         if (self[source.x][source.y] != None):
-            print("Illegal move, UndoMove self[source.x][source.y] != None")
+            print("UndoMove, Illegal move, UndoMove self[source.x][source.y] != None")
             return
 
         if (source.x == dest.x) or (source.y == dest.y):
-            print("Illegal move, UndoMove source.x == dest.x) or (source.y == dest.y")
+            print("UndoMove, Illegal move, UndoMove source.x == dest.x) or (source.y == dest.y")
             return
 
         piece = self[dest.x][dest.y]
@@ -73,7 +73,7 @@ class Board(object):
         if(piece.__class__.__name__ == "Checker"):
             # distance should be either 1 or 2
             if (abs(source.x - dest.x) > 2) or (abs(source.y - dest.y) > 2):
-                print("Impossible move at the moment.")
+                print("UndoMove, Impossible move at the moment.")
                 return
 
             # Is it a double step?
@@ -84,7 +84,7 @@ class Board(object):
                 dead = self[midX][midY]
 
                 if (dead != None):
-                    print("Expecting empty spot.")
+                    print("UndoMove, Expecting empty spot.")
                     return
 
                 if (piece.Color == config.WHITE):
@@ -98,7 +98,7 @@ class Board(object):
 
             else:  # This is a single step make sure move direction is correct for selected piece.
                 if piece.AdvanceDirection != (dest.x - source.x):
-                    print "Your going in the wrong direction"
+                    print "UndoMove, Your going in the wrong direction"
                     return
         # Queen.
         else:
@@ -121,7 +121,7 @@ class Board(object):
                 dead = self[deadXPos][deadYPos]
 
                 if (dead != None):
-                    print("Expecting empty spot.")
+                    print("UndoMove, Expecting empty spot.")
                     return
 
                 color = config.WHITE
@@ -139,64 +139,93 @@ class Board(object):
         self.board[dest.x][dest.y] = None
 
     def MultipleMove(self, move_list):
+        moveCounter = 0
         for move in move_list:
-            self.Move(move['from'], move['to'])
+            bCheckDirection = False if (moveCounter > 0 and move['eat']) else True
+            self.Move(move['from'], move['to'], bCheckDirection)
+            moveCounter += 1
 
     def MultipleUndoMove(self, move_list):
         for move in reversed(move_list):
             self.UndoMove(move['from'], move['to'])
 
-    def Move(self, source, dest):
+    def Move(self, source, dest, bCheckDirection = True):
         if (not self.WithinBounds(source.x, source.y)):
-            print("WithinBounds - Illegal move")
+            print("Move, WithinBounds - Illegal move")
             return False
 
         if (not self.WithinBounds(dest.x, dest.y)):
-            print("WithinBounds - Illegal move")
+            print("Move, WithinBounds - Illegal move")
             return False
 
         if (self[source.x][source.y] == None):
-            print("piece missing")
+            print("Move, piece missing")
             return False
 
         if (self[dest.x][dest.y] != None):
-            print("Illegal move from %d,%d to %d,%d" % (source.x, source.y, dest.x, dest.y))
+            print("Move, Illegal move from %d,%d to %d,%d" % (source.x, source.y, dest.x, dest.y))
             return False
 
         if (source.x == dest.x) or (source.y == dest.y):
-            print("Illegal move")
-            return False
-
-        # distance should be either 1 or 2, for the time being.
-        if (abs(source.x - dest.x) > 2 or abs(source.y - dest.y) > 2):
-            print("Impossible move at the moment.")
+            print("Move, Illegal move")
             return False
 
         piece = self[source.x][source.y]
 
-        # Is it a double step?
-        if (abs(source.x - dest.x) == 2):
-            # Make sure move is legal.
-            midX = int(math.ceil((source.x + dest.x) / 2))
-            midY = int(math.ceil((source.y + dest.y) / 2))
-            dead = self[midX][midY]
+        # Checker can't move more than two steps in a single move
+        if (piece.__class__.__name__ == "Checker" and (abs(source.x - dest.x) > 2 or abs(source.y - dest.y) > 2)):
+            print "Move, Checker can't move more than two steps in a single move."
+            return False
 
-            if (dead == None):
-                print("Illegal move, dead == None")
-                return False
+        if (piece.__class__.__name__ == "Checker"):
+            # Is it an eat move?
+            if (abs(source.x - dest.x) > 1):
+                # Find out move direction: up left, down left, etc.
+                # Division is necessary to keep Distance equal to 1 / -1, (think vector normal).
+                XDirection = (dest.x - source.x) / (abs(source.x - dest.x))
+                YDirection = (dest.y - source.y) / (abs(source.x - dest.x))
+                eatXPos = dest.x - XDirection
+                eatYPos = dest.y - YDirection
+                dead = self[eatXPos][eatYPos]
 
-            if (dead.Color == piece.Color):
-                print("Can't eat your own kind.")
-                return False
+                # Make sure move is legal.
+                if (dead == None):
+                    print("Move, Illegal move, dead == None")
+                    return False
 
-            # Eat!
-            # NOTE there's no check for move direction here!, check is made in the checker class.
-            self.RemovePiece(dead.Position)
-        else:  # This is a single step make sure move direction is correct for selected piece.
-            if piece.AdvanceDirection != (dest.x - source.x):
-                print "Your going in the wrong direction"
-                return False
+                if (dead.Color == piece.Color):
+                    print("Move, Can't eat your own kind.")
+                    return False
+                # Eat!
+                self.RemovePiece(dead.Position)
+        # Queen.
+        else:
+            # Is it a potential eat move?
+            if (abs(source.x - dest.x) > 1):
+                # Find out move direction: up left, down left, etc.
+                # Division is necessary to keep Distance equal to 1 / -1, (think vector normal).
+                XDirection = (dest.x - source.x) / (abs(source.x - dest.x))
+                YDirection = (dest.y - source.y) / (abs(source.x - dest.x))
+                eatXPos = dest.x - XDirection
+                eatYPos = dest.y - YDirection
+                dead = self[eatXPos][eatYPos]
 
+                # Make sure move is legal.
+                if (dead != None):
+                    if (dead.Color == piece.Color):
+                        print("Move, Can't eat your own kind.")
+                        return False
+                    # Eat!
+                    self.RemovePiece(dead.Position)
+
+        # Make sure move move direction is correct
+        if piece.__class__.__name__ == "Checker" and \
+                        bCheckDirection and \
+                        piece.AdvanceDirection != (dest.x - source.x) / abs((dest.x - source.x)):
+            print "Move, Your going in the wrong direction"
+            return False
+
+        # Legal move.
         piece.Move(dest)
         self.board[dest.x][dest.y] = piece
         self.board[source.x][source.y] = None
@@ -205,7 +234,7 @@ class Board(object):
     def RemovePiece(self, location):
         # Sanity checks.
         if (not self.WithinBounds(location.x, location.y)):
-            print("Illegal move, RemovePiece")
+            print("Illegal location, RemovePiece")
             return
 
         piece = self.board[location.x][location.y]
@@ -219,8 +248,27 @@ class Board(object):
         self.board[location.x][location.y] = None
 
     def AddPiece(self, piece, location):
+        # Sanity checks.
+        if(piece == None or location == None):
+            print("Null argument")
+            return False
+
+        if(piece.Position.x != location.x or piece.Position.y != location.y):
+            print("Inconsistency, piece isn't at decleared position.")
+            return False
+
+        if(not self.WithinBounds(location.x, location.y)):
+            print("Can't place piece at given location")
+            return False
+
+        temp = self.board[location.x][location.y]
+        if (temp != None):
+            print("there's already a piece at given location.")
+            return False
+
         self.checkers[piece.Color].append(piece)
         self.board[location.x][location.y] = piece
+        return True
 
     def __getitem__(self, index):
         return self.board[index]

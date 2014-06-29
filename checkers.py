@@ -207,8 +207,8 @@ class CompPlayer(Player):
         bMustEat = self.CanEat()
 
         # construct a list of checkers to test, each checker will be identified by it's position
-        # this is becuase our list might change over time, and we'll might calculate a result
-        # for the same piece multipal times, missleading ourselves. 
+        # this is because our list might change over time, and we'll might calculate a result
+        # for the same piece multiple times, misleading ourselves.
         checkersPositionsList = []
         for checker in self.checkers:
             if (len(checker.PossibleMoves()) == 0):  # Piece can't move.
@@ -220,7 +220,7 @@ class CompPlayer(Player):
             checkersPositionsList.append(checker.Position)
 
         forest = []
-        # freach checker to consider, see what moves can we perform.
+        # foreach checker to consider, see what moves can we perform.
         for checkerPos in checkersPositionsList:
             checker = self.game_board[checkerPos.x][checkerPos.y]
 
@@ -377,7 +377,7 @@ class Game(object):
 
         # We'll figure out if a move was an "eat" move by the distance of the move.
         bEat = abs (src.x - dest.x) == 2
-        if(bEat == True and self.currentPlayer.CanEat() and not bQueen):
+        if(bEat == True and piece.CanEat() and not bQueen):
             # Keep eating...
             self.currentPlayer.Play()
             return
