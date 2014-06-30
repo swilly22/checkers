@@ -201,23 +201,26 @@ class CompPlayer(Player):
     def __init__(self, _color, _checkers, _game_board):
         Player.__init__(self, _color, _checkers, _game_board)
 
-    def Play(self):
+    def Play(self, specificPiece = None, eat_mode = False):
         # Step 1. Incase we've got a piece which is able to 'eat' we must use it.
-        # Determin if there's such piece.
-        bMustEat = self.CanEat()
+        # Determine if there's such piece.
+        bMustEat = True if eat_mode or self.CanEat() else False
 
         # construct a list of checkers to test, each checker will be identified by it's position
         # this is because our list might change over time, and we'll might calculate a result
         # for the same piece multiple times, misleading ourselves.
         checkersPositionsList = []
-        for checker in self.checkers:
-            if (len(checker.PossibleMoves()) == 0):  # Piece can't move.
-                continue
+        if(specificPiece != None):
+            checkersPositionsList.append(specificPiece.Position)
+        else:
+            for checker in self.checkers:
+                if (len(checker.PossibleMoves()) == 0):  # Piece can't move.
+                    continue
 
-            if(checker.CanEat() != bMustEat): # We must 'eat' and this piece can't.
-                continue
+                if(checker.CanEat() != bMustEat): # We must 'eat' and this piece can't.
+                    continue
 
-            checkersPositionsList.append(checker.Position)
+                checkersPositionsList.append(checker.Position)
 
         forest = []
         # foreach checker to consider, see what moves can we perform.
@@ -228,7 +231,7 @@ class CompPlayer(Player):
             root = Tree.Tree([0, 0])
             forest.append((checker.Position, root))
 
-            for move in checker.PossibleMoves():
+            for move in checker.PossibleMoves(eat_mode):
                 if (move[0]['eat'] == 1):
                     node = root.AddNode([len(move), 0])
                 else:
@@ -377,9 +380,9 @@ class Game(object):
 
         # We'll figure out if a move was an "eat" move by the distance of the move.
         bEat = abs (src.x - dest.x) == 2
-        if(bEat == True and piece.CanEat() and not bQueen):
-            # Keep eating...
-            self.currentPlayer.Play()
+        if(bEat == True and piece.CanEat(True) and not bQueen):
+            # Keep eating, with
+            self.currentPlayer.Play(piece, True)
             return
 
         self.ChangeTurn()

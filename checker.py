@@ -32,8 +32,8 @@ class Checker(object):
 
         self.position = point.Point(location.x, location.y)
 
-    def CanEat(self):
-        for move in self.PossibleMoves():
+    def CanEat(self, eat_mode=False):
+        for move in self.PossibleMoves(eat_mode):
             if (move[0]['eat'] == 1):
                 return True
 
@@ -118,7 +118,7 @@ class Queen(Checker):
             for YDirection in [-1,1]:
                 currentPosition = point.Point(self.position.x, self.position.y)
 
-                while(self.game_board.WithinBounds(currentPosition.x, currentPosition.y)):
+                while(self.game_board.WithinBounds(currentPosition.x + XDirection, currentPosition.y + YDirection)):
                     piece = self.game_board[currentPosition.x + XDirection][currentPosition.y + YDirection]
                     if(piece != None and
                        piece.Color != self.Color and
@@ -126,7 +126,7 @@ class Queen(Checker):
                        self.game_board[currentPosition.x + 2 * XDirection][currentPosition.y + 2 * YDirection] == None):
                             return True
 
-                    # Move down and right.
+                    # Move
                     currentPosition = point.Point(currentPosition.x + XDirection,
                                                   currentPosition.y + YDirection)
 
