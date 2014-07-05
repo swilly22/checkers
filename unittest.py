@@ -199,7 +199,6 @@ def TestUndoMove():
 def TestPossibleMoves():
     game_board = board.Board()
 
-    whites = game_board.checkers[config.WHITE]
     blacks = game_board.checkers[config.BLACK]
 
     stuckPiece = game_board[0][0]
@@ -221,43 +220,105 @@ def TestPossibleMoves():
     assert (moves[0][0]['to'].x == 3 and moves[0][0]['to'].y == 1 and moves[0][0]['eat'] == False)
     assert (moves[1][0]['to'].x == 3 and moves[1][0]['to'].y == 3 and moves[1][0]['eat'] == False)
 
-    toEatPiece = game_board[5][7]
-    eater = game_board[2][4]
-
-    game_board.Move(toEatPiece.Position, point.Point(4, 6))
-    game_board.Move(toEatPiece.Position, point.Point(3, 5))
-    assert (toEatPiece.Position.x == 3 and toEatPiece.Position.y == 5)
+    game_board.ClearBoard()
+    eater = checker.Checker(config.WHITE, point.Point(2, 4), game_board)
+    eaten = checker.Checker(config.BLACK, point.Point(3, 3), game_board)
+    game_board.AddPiece(eater, eater.Position)
+    game_board.AddPiece(eaten, eaten.Position)
 
     moves = eater.PossibleMoves()
     assert (len(moves) == 1)
-    assert (moves[0][0]['to'].x == 4 and moves[0][0]['to'].y == 6 and moves[0][0]['eat'] == True)
+    assert (moves[0][0]['to'].x == 4 and moves[0][0]['to'].y == 2 and moves[0][0]['eat'] == True)
 
     # Eat backwards.
-    game_board = board.Board()
-    whites = game_board.checkers[config.WHITE]
-    blacks = game_board.checkers[config.BLACK]
-
-    toEatPiece = game_board[5][1]
-    backwardsToEatPiece = game_board[5][3]
-    eater = game_board[2][2]
-
-    game_board.Move(toEatPiece.Position, point.Point(4, 2))
-
-    game_board.Move(backwardsToEatPiece.Position, point.Point(4, 4))
-
-    game_board.Move(eater.Position, point.Point(3, 1))
+    game_board.ClearBoard()
+    eater = checker.Checker(config.WHITE, point.Point(2, 2), game_board)
+    eaten = checker.Checker(config.BLACK, point.Point(3, 3), game_board)
+    eatenBack = checker.Checker(config.BLACK, point.Point(3, 5), game_board)
+    
+    game_board.AddPiece(eater, eater.Position)
+    game_board.AddPiece(eaten, eaten.Position)
+    game_board.AddPiece(eatenBack, eatenBack.Position)
 
     moves = eater.PossibleMoves()
     assert (len(moves) == 1)
     assert (len(moves[0]) == 2)
-    assert (moves[0][0]['from'].x == 3 and moves[0][0]['from'].y == 1 and moves[0][0]['eat'] == True)
-    assert (moves[0][0]['to'].x == 5 and moves[0][0]['to'].y == 3 and moves[0][0]['eat'] == True)
-    assert (moves[0][1]['from'].x == 5 and moves[0][1]['from'].y == 3 and moves[0][1]['eat'] == True)
-    assert (moves[0][1]['to'].x == 3 and moves[0][1]['to'].y == 5 and moves[0][1]['eat'] == True)
+    assert (moves[0][0]['from'].x == 2 and moves[0][0]['from'].y == 2 and moves[0][0]['eat'] == True)
+    assert (moves[0][0]['to'].x == 4 and moves[0][0]['to'].y == 4 and moves[0][0]['eat'] == True)
+    assert (moves[0][1]['from'].x == 4 and moves[0][1]['from'].y == 4 and moves[0][1]['eat'] == True)
+    assert (moves[0][1]['to'].x == 2 and moves[0][1]['to'].y == 6 and moves[0][1]['eat'] == True)
 
     game_board.MultipleMove(moves[0])
-    assert (len(blacks) == 10)
+    assert (len(blacks) == 0)
 
+    # four eats.
+    game_board.ClearBoard()
+    eater = checker.Checker(config.WHITE, point.Point(2,0), game_board)
+    a = checker.Checker(config.BLACK, point.Point(3, 1), game_board)
+    b = checker.Checker(config.BLACK, point.Point(3, 3), game_board)
+    c = checker.Checker(config.BLACK, point.Point(3, 5), game_board)
+    d = checker.Checker(config.BLACK, point.Point(5, 5), game_board)
+    
+    game_board.AddPiece(eater, eater.Position)
+    game_board.AddPiece(a, a.Position)
+    game_board.AddPiece(b, b.Position)
+    game_board.AddPiece(c, c.Position)
+    game_board.AddPiece(d, d.Position)
+
+    assert (len(blacks) == 4)
+
+    moves = eater.PossibleMoves()
+    assert (len(moves) == 1)
+    assert (len(moves[0]) == 4)
+    assert (moves[0][0]['from'].x == 2 and moves[0][0]['from'].y == 0 and moves[0][0]['eat'] == True)
+    assert (moves[0][0]['to'].x == 4 and moves[0][0]['to'].y == 2 and moves[0][0]['eat'] == True)
+
+    assert (moves[0][1]['from'].x == 4 and moves[0][1]['from'].y == 2 and moves[0][1]['eat'] == True)
+    assert (moves[0][1]['to'].x == 2 and moves[0][1]['to'].y == 4 and moves[0][1]['eat'] == True)
+
+    assert (moves[0][2]['from'].x == 2 and moves[0][2]['from'].y == 4 and moves[0][0]['eat'] == True)
+    assert (moves[0][2]['to'].x == 4 and moves[0][2]['to'].y == 6 and moves[0][0]['eat'] == True)
+    
+    assert (moves[0][3]['from'].x == 4 and moves[0][3]['from'].y == 6 and moves[0][1]['eat'] == True)
+    assert (moves[0][3]['to'].x == 6 and moves[0][3]['to'].y == 4 and moves[0][1]['eat'] == True)
+
+    game_board.MultipleMove(moves[0])
+    assert (len(blacks) == 0)
+
+    # four eats.
+    game_board.ClearBoard()
+    eater = checker.Checker(config.WHITE, point.Point(5,7), game_board)
+    a = checker.Checker(config.BLACK, point.Point(6, 6), game_board)
+    b = checker.Checker(config.BLACK, point.Point(6, 4), game_board)
+    c = checker.Checker(config.BLACK, point.Point(4, 4), game_board)
+    d = checker.Checker(config.BLACK, point.Point(2, 4), game_board)
+    
+    game_board.AddPiece(eater, eater.Position)
+    game_board.AddPiece(a, a.Position)
+    game_board.AddPiece(b, b.Position)
+    game_board.AddPiece(c, c.Position)
+    game_board.AddPiece(d, d.Position)
+
+    assert (len(blacks) == 4)
+
+    moves = eater.PossibleMoves()
+    assert (len(moves) == 1)
+    assert (len(moves[0]) == 4)
+    assert (moves[0][0]['from'].x == 5 and moves[0][0]['from'].y == 7 and moves[0][0]['eat'] == True)
+    assert (moves[0][0]['to'].x == 7 and moves[0][0]['to'].y == 5 and moves[0][0]['eat'] == True)
+
+    assert (moves[0][1]['from'].x == 7 and moves[0][1]['from'].y == 5 and moves[0][1]['eat'] == True)
+    assert (moves[0][1]['to'].x == 5 and moves[0][1]['to'].y == 3 and moves[0][1]['eat'] == True)
+
+    assert (moves[0][2]['from'].x == 5 and moves[0][2]['from'].y == 3 and moves[0][0]['eat'] == True)
+    assert (moves[0][2]['to'].x == 3 and moves[0][2]['to'].y == 5 and moves[0][0]['eat'] == True)
+    
+    assert (moves[0][3]['from'].x == 3 and moves[0][3]['from'].y == 5 and moves[0][1]['eat'] == True)
+    assert (moves[0][3]['to'].x == 1 and moves[0][3]['to'].y == 3 and moves[0][1]['eat'] == True)
+
+    game_board.MultipleMove(moves[0])
+    assert (len(blacks) == 0)
+    
     return True
 
 
@@ -317,17 +378,9 @@ def TestQueen():
     game_board = board.Board()
     whites = game_board.checkers[config.WHITE]
     blacks = game_board.checkers[config.BLACK]
-    whitesCopy = list(whites)
-    blacksCopy = list(blacks)
 
     # Remove all pieces from board.
-    for piece in whitesCopy:
-        game_board.RemovePiece(piece.Position)
-
-    for piece in blacksCopy:
-        game_board.RemovePiece(piece.Position)
-
-    assert (len(whites) == len(blacks) == 0)
+    game_board.ClearBoard()
 
     queen = checker.Queen(config.WHITE, point.Point(7, 7), game_board)
     assert (game_board.AddPiece(queen, queen.Position) == True)
@@ -349,11 +402,58 @@ def TestQueen():
     moves = queen.PossibleMoves()
     assert (len(moves) == 13)
 
+    # Queen eat
+    game_board.ClearBoard()
+    queen = checker.Queen(config.WHITE, point.Point(0, 0), game_board)
+    a = checker.Checker(config.BLACK, point.Point(3, 3), game_board)
+    b = checker.Checker(config.BLACK, point.Point(5, 3), game_board)
+    c = checker.Checker(config.BLACK, point.Point(5, 1), game_board)
+    
+    game_board.AddPiece(queen, queen.Position)
+    game_board.AddPiece(a, a.Position)
+    game_board.AddPiece(b, b.Position)
+    game_board.AddPiece(c, c.Position)
+
+    moves = queen.PossibleMoves()
+
+    assert(len(moves) == 1)
+    assert(len(moves[0]) == 3)
+    assert (moves[0][0]['from'].x == 0 and moves[0][0]['from'].y == 0 and moves[0][0]['eat'] == True)
+    assert (moves[0][0]['to'].x == 4 and moves[0][0]['to'].y == 4 and moves[0][0]['eat'] == True)
+
+    assert (moves[0][1]['from'].x == 4 and moves[0][1]['from'].y == 4 and moves[0][1]['eat'] == True)
+    assert (moves[0][1]['to'].x == 6 and moves[0][1]['to'].y == 2 and moves[0][1]['eat'] == True)
+
+    assert (moves[0][2]['from'].x == 6 and moves[0][2]['from'].y == 2 and moves[0][1]['eat'] == True)
+    assert (moves[0][2]['to'].x == 4 and moves[0][2]['to'].y == 0 and moves[0][1]['eat'] == True)
+
+    game_board.MultipleMove(moves[0])
+    assert(len(blacks) == 0)
+    
     return True
 
 
+def TestClearBoard():
+    game_board = board.Board()
+    whites = game_board.checkers[config.WHITE]
+    blacks = game_board.checkers[config.BLACK]
+    game_board.ClearBoard()
+
+    assert(len(whites) == 0)
+    assert(len(blacks) == 0)
+
+    for x in range(config.BOARD_HEIGHT):
+        for y in range(config.BOARD_WIDTH):
+            piece = game_board[x][y]
+            assert (piece == None)
+
+    return True
+
 if (TestInitializedBoard() != True):
     print "TestInitializedBoard failed"
+
+if(TestClearBoard() != True):
+    print "TestClearBoard failed"
 
 if (TestSimpleMove() != True):
     print "TestSimpleMove failed"

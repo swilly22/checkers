@@ -5,18 +5,9 @@ import math
 import sys
 
 class Board(object):
-    def __init__(self):
-        self.blank_board = [[0 for x in range(8)] for x in range(8)]
+    def __init__(self):        
         self.board = [[None for x in range(8)] for x in range(8)]
         self.checkers = {config.WHITE: [], config.BLACK: []}
-
-        for x in range(config.BOARD_WIDTH):
-            for y in range(config.BOARD_HEIGHT):
-                if ((x + y) % 2 == 0):
-                    self.blank_board[x][y] = 'B'
-                else:
-                    self.blank_board[x][y] = 'W'
-
         self.SetNormalBoard()
 
     @staticmethod
@@ -39,8 +30,14 @@ class Board(object):
                     location = point.Point(x, y)
                     piece = checker.Checker(config.BLACK, location, self)
                     self.AddPiece(piece, location)
-                    #self.checkers[config.BLACK].append(piece)
-                    #self.board[x][y] = piece
+
+    def ClearBoard(self):
+        for x in range(config.BOARD_HEIGHT):
+            for y in range(config.BOARD_WIDTH):
+                piece = self.board[x][y]
+                if(piece != None):
+                    self.checkers[piece.Color].remove(piece)
+                    self.board[x][y] = None
 
     def UndoMove(self, source, dest, eat=False):
         if ((source.x == dest.x) or (source.y == dest.y)):
@@ -272,9 +269,6 @@ class Board(object):
 
     def __getitem__(self, index):
         return self.board[index]
-
-    def CopyBlankBoard(self):
-        return list(self.blank_board)
 
     def Print(self):
         board = self.CopyBlankBoard()
