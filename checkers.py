@@ -52,7 +52,7 @@ class Player(object):
     def JoinedGame(self):
         pass
 
-    def OpponentMove(self, src, dest):
+    def OpponentMove(self, move):
         pass
 
     def Queened(self, position):
@@ -78,9 +78,10 @@ class Player(object):
     def RegisterOnMove(self,subscriber):
         self.subscribers.append(subscriber)
 
-    def FireMove(self, src, dest):
+    def FireMove(self, move):
         for subscriber in self.subscribers:
-            subscriber(src, dest)
+            #subscriber(src, dest)
+            subscriber(move)
 
 class HumanPlayer(Player):
     
@@ -118,17 +119,12 @@ class HumanPlayer(Player):
     def JoinedGame(self):
         pass
 
-    def OpponentMove(self, src, dest):
+    def OpponentMove(self, moves):
         # Send message to player, letting him / her know its her turn to play.
         response = {}
         response['fromServer'] = True
         response['action'] = config.MOVE
-        response['src'] = {}
-        response['dest'] = {}
-        response['src']['x'] = src.x
-        response['src']['y'] = src.y
-        response['dest']['x'] = dest.x
-        response['dest']['y'] = dest.y
+        response['moves'] = moves
         self.socket.send(json.dumps(response))
 
     # TODO, move this Method to some place else.
@@ -191,7 +187,13 @@ class HumanPlayer(Player):
                 response = {}
                 response['result'] = res
                 self.socket.send(json.dumps(response))
-                self.FireMove(src, dest)
+
+                move = [{'from': point.Point(src.x, src.y),
+                        'to': point.Point(dest.x, dest.y),
+                        'eat': False}]
+
+                self.FireMove(move)
+                #self.FireMove(src, dest)
 
         else:
             print "Unknown action"
@@ -238,6 +240,9 @@ class CompPlayer(Player):
                     node = root.AddNode([0, 0])
 
                 node.move_to = move[0]['to']
+                # Experimental
+                node.move_taken = move
+                # End of Experimental
                 self.game_board.MultipleMove(move)
                 self.LookAHead(node, 4)
                 self.game_board.MultipleUndoMove(move)
@@ -267,6 +272,7 @@ class CompPlayer(Player):
                 src = checkerPosition
 
         MaxDiff = float("-inf") # - infinity.
+        SelectedNode = None
         for node in SelectedTree.Nodes:
             wins = node.Value[0]
             losses = node.Value[1]
@@ -274,10 +280,13 @@ class CompPlayer(Player):
             if(diff > MaxDiff):
                 MaxDiff = diff
                 dest = node.move_to
+                SelectedNode = node
 
         # Perform move.
-        res = self.game_board.Move(src, dest)
-        self.FireMove(src, dest)
+        #res = self.game_board.Move(src, dest)
+        self.game_board.MultipleMove(SelectedNode.move_taken)
+        #self.FireMove(src, dest)
+        self.FireMove(SelectedNode.move_taken)
 
     def Wait(self):
         pass
@@ -358,18 +367,22 @@ class Game(object):
         else:
             self.currentPlayer = self.players[0]
 
-    def OnMove(self, src, dest):
+    #def OnMove(self, src, dest):
+    def OnMove(self, move):
         # Update other player about the move.
-        self.currentPlayer.opponent.OpponentMove(src, dest)
+        #self.currentPlayer.opponent.OpponentMove(src, dest)
+        self.currentPlayer.opponent.OpponentMove(move)
 
         # Did checker reached the end of the board? if so queen it.
-        bQueen = False
+        #bQueen = False
+        lastMove = move[len(move) - 1]
+        dest = lastMove['to']
         piece = self.board[dest.x][dest.y]
         if(piece.__class__.__name__ == "Checker"):
             if((piece.AdvanceDirection == 1 and piece.Position.x == config.BOARD_HEIGHT - 1) or
             (piece.AdvanceDirection == -1 and piece.Position.x == 0)):
                 print("Queened!")
-                bQueen = True
+                # bQueen = True
                 queen = checker.Queen(piece.Color, dest, self.board)
                 # Remove old piece.
                 self.board.RemovePiece(dest)
@@ -379,12 +392,11 @@ class Game(object):
                 self.currentPlayer.Queened(dest)
 
         # We'll figure out if a move was an "eat" move by the distance of the move.
-        bEat = abs (src.x - dest.x) == 2
-        if(bEat == True and piece.CanEat(True) and not bQueen):
-            # Keep eating, with
-            self.currentPlayer.Play(piece, True)
-            return
-
+        #bEat = (abs(src.x - dest.x) == 2)
+        #if(bEat == True and piece.CanEat(True) and not bQueen):
+            # Keep eating, with specific piece
+            #self.currentPlayer.Play(piece, True)
+        
         self.ChangeTurn()
         self.GameLoop()
 
@@ -393,7 +405,7 @@ class Game(object):
         if(self.players[0].CheckersCount > 0 and self.players[1].CheckersCount > 0):
             # Check for draw, both players can't move.
             if(len(self.players[0].AllMoves()) == 0 and len(self.players[1].AllMoves()) == 0):
-                #Draw.
+                # Draw.
                 return
 
             # Can current player move?

@@ -15,13 +15,17 @@ function Server() {
 function ActionHandler(data) {
   switch(data.action) {
     case ACTIONS.MOVE:
-      var checker = board.checkers[data.src.x][data.src.y];
-      if(checker == null) {
-        console.log("Error, missing piece");
-        return;
-      }
+      for(var idx = 0; idx < data.moves.length; idx++) {
+        var src = {'x' : data.moves[idx].from[0], 'y' : data.moves[idx].from[1]};
+        var dest = {'x' : data.moves[idx].to[0], 'y' : data.moves[idx].to[1]};
+        var checker = board.checkers[src.x][src.y];
+        if(checker == null) {
+          console.log("Error, missing piece");
+          return;
+        }
 
-      board.MoveChecker(data.src, data.dest);
+        board.MoveChecker(src, dest);
+      }
       break;
 
     case ACTIONS.PLAY:
