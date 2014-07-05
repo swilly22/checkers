@@ -10,7 +10,11 @@ function Animator() {
 function BLA(e) {
 
 	var start = new Date().getTime()/1000;
-	start += 0.5;
+
+	// Take into account other animations which might be runnning.
+	// Multiplying by animator.animations.length + 1
+	// "waints" for previous animations to finish.
+	start += 0.5 * (animator.animations.length + 1);
 	var fromVector = BoardToSpaceCords(e.detail.from);
 	var toVector = BoardToSpaceCords(e.detail.to);
 	var direction = toVector.clone().sub(fromVector);
@@ -19,7 +23,7 @@ function BLA(e) {
 	function f() {
 		var delta = new Date().getTime()/1000;
 		delta = start - delta;
-		delta /= 0.5;	// animation should take 1 seconds.
+		delta /= 0.5;	// animation should take 1/2 seconds.
 		delta = 1 - delta; // reverse, e.g. from -0.8 to -0.2
 		//delta *= -1; // positive.
 		delta = Math.abs(delta);
@@ -34,7 +38,6 @@ function BLA(e) {
 		}
 
 		if(checker.world_position.clone().sub(toVector).length() > 0.09) {
-			//checker.world_position.add(deltaVector);
 			checker.world_position = fromVector.clone().add(deltaVector);
 			checker.cylinder.position = checker.world_position;
 			return false;
@@ -46,10 +49,19 @@ function BLA(e) {
 }
 
 function Animate() {
-	for(var i = 0; i < this.animations.length; i++) {
+
+	// only one animation can execute on each frame.
+	if(this.animations.length > 0) {
+		var method = this.animations[0];
+		if(method()) {
+			this.animations.splice(0, 1); // Remove animation.
+		}
+	}
+
+	/*for(var i = 0; i < this.animations.length; i++) {
 		var method = this.animations[i];
 		if(method()) {
 			this.animations.splice(i, 1); // Remove animation. 
 		}
-	}
+	}*/
 }
