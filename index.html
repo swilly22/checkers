@@ -31,6 +31,7 @@ var COLOR_BLACK = 0x321900;
 var COLOR_BLACK_SELECTED = 0x523920;
 var selected_checker = null;
 var animator = new Animator();
+var moves = new Array();
 
 function Radians(degrees) {
   return 2 * Math.PI * (degrees / 360);
@@ -153,7 +154,7 @@ function onDocumentMouseUp(event) {
   
   // Get board position
   var board_pos = SpaceToBoardCords(selected_checker.world_position);
-  
+
   // Are we outside the board boundry?
   if(!board.WithInBounds(board_pos)) {
     console.log("Not within bounds.");
@@ -163,7 +164,6 @@ function onDocumentMouseUp(event) {
 
     // Diselect piece.
     selected_checker.UnSelect();
-    drag = false;
     selected_checker = null;
 
     return;
@@ -174,60 +174,108 @@ function onDocumentMouseUp(event) {
     console.log("Stayed put");
     // Diselect piece.
     selected_checker.UnSelect();
-    drag = false;
     selected_checker = null;
 
     return; 
   }
 
-  // Make sure move is legal.    
+  // Add move to moves list.
+  if(moves.length > 0) {
+    // Make sure player moves with the previous piece.
+    lastMove = moves[moves.length-1].to;
+    if(lastMove.x != selected_checker.board_position.x ||
+      lastMove.y != selected_checker.board_position.y) {
+      // Sorry you must use the same piece.
+      console.log("Keep playing with previous piece.");
+    
+      // Return to original position.
+      selected_checker.AnimateMove(original_position);
+      return;
+    }
+  }
+  // Add move.
+  moves.push({"from" : selected_checker.board_position,
+              "to" : board_pos});
+  
+  // Make sure move is legal.
   server.RequestPossibleMoves(selected_checker.board_position, 
     function(response) {
-      var legal = false;
-      var piece_new_position = SpaceToBoardCords(selected_checker.world_position);
       var play = null;
+      var status = -1;  // Not a legal move.
 
-      for(var idx = 0; idx < response.possible_moves.length; idx++) {
-        play = response.possible_moves[idx];
-
-        // Make sure this play matches our move.
-        if(play[0].from[0] != selected_checker.board_position.x||
-          play[0].from[1] != selected_checker.board_position.y ||
-          play[0].to[0] != piece_new_position.x || 
-          play[0].to[1] != piece_new_position.y) {
+      // Foreach posibility.
+      for(var idxOptions = 0; idxOptions < response.possible_moves.length; idxOptions++) {
+        play = response.possible_moves[idxOptions];
+        
+        // Should we concider current posibility?
+        if(moves.length > play.length) {
+          // Nope.
           continue;
         }
-        else {
-          legal = true;
+        
+        var idxMoves = 0;
+        // Foreach queued move.
+        for(; idxMoves < moves.length; idxMoves++) {
+          // Make sure this play matches our move.
+          if(play[idxMoves].from[0] != moves[idxMoves].from.x ||
+          play[idxMoves].from[1] != moves[idxMoves].from.y  ||
+          play[idxMoves].to[0] != moves[idxMoves].to.x || 
+          play[idxMoves].to[1] != moves[idxMoves].to.y) {
+          break;
+          }
+        }
+        if (idxMoves == play.length && idxMoves == moves.length) {
+          // Legal complete move! send request to server.
+          status = 1;
           break;
         }
+        else if (idxMoves == moves.length) {
+          // "Semi" legal move, player need to keep playing,
+          // there are still additional moves to perform.
+          status = 0;
+          break;            
+        }
+        else {
+          // Not a legal move, don't break though. keep searching
+        }
       } // End of loop.
-
-      if(!legal) {
+        
+      // We didn't match either semi or complete move.
+      if(status == -1) {
         // Restore to original position.
         selected_checker.AnimateMove(original_position);
+        moves.pop();  // Remove last move from list.
         console.log("illegal move.");
+        return;
       }
-      else {          
+      else if (status == 0) {
+        // Update board && checker, but palyer isn't done yet.
+        board.MoveChecker(moves[idxMoves].from, moves[idxMoves].to);
+        return;
+      }
+      else { // status == 1, complete move.
+
+        idxMoves--; // index to last element.
+        board.MoveChecker(moves[idxMoves].from, moves[idxMoves].to);
         // Let server know about the move.
-        server.UpdatePiecePosition(selected_checker.board_position, piece_new_position, 
+        server.UpdatePiecePosition(moves, 
           function(response) {
             if(response.result == true) {
+              // Clear moves list.
+              moves.splice(0, moves.length);
               if(play[0].eat == true) {
                 console.log("Eat move.");
               }
-              // Update board && checker.
-              board.MoveChecker(selected_checker.board_position, piece_new_position);
             }
             else {
               console.log("Illegal move, probably out of sync with server.");
               // Restore to original position.
-              selected_checker.AnimateMove(original_position);
+              //selected_checker.AnimateMove(original_position);
               console.log("illegal move.");
             }
           });
       }
-  });
+    });
 }
 
 function onDocumentMouseMove(event)  {

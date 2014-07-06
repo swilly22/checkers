@@ -109,7 +109,8 @@ function RequestPossibleMoves(position, callback) {
   this.Send(request, callback);
 }
 
-function UpdatePiecePosition(from, to, callback) {
-  var request = {'action' : ACTIONS.MOVE, "from" : from, "to" : to};
+//function UpdatePiecePosition(from, to, callback) {
+function UpdatePiecePosition(moves, callback) {
+  var request = {'action' : ACTIONS.MOVE, "moves" : moves};
   this.Send(request, callback);
 }

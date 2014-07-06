@@ -174,6 +174,7 @@ class HumanPlayer(Player):
                 self.socket.send(json.dumps(response))
 
         elif (request['action'] == config.MOVE):
+            # request['from'][0]['to']['x']
             src = point.Point(request['from']['x'], request['from']['y'])
             dest = point.Point(request['to']['x'], request['to']['y'])
             piece = self.game_board[src.x][src.y]
