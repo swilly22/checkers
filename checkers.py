@@ -174,28 +174,63 @@ class HumanPlayer(Player):
                 self.socket.send(json.dumps(response))
 
         elif (request['action'] == config.MOVE):
-            # request['from'][0]['to']['x']
-            src = point.Point(request['from']['x'], request['from']['y'])
-            dest = point.Point(request['to']['x'], request['to']['y'])
+            # Sanity check on first move.
+            requestedMoves = request['moves']
+            firstMove = requestedMoves[0]
+            src = point.Point(firstMove['from']['x'], firstMove['from']['y'])
             piece = self.game_board[src.x][src.y]
+            if piece == None:
+                print "Missing piece."
+                response = {}
+                response['error'] = 'Missing piece, probably out of sync.'
+                self.socket.send(json.dumps(response))
+                return
+
             if piece.Color != self.color:
                 print "You don't own this piece."
                 response = {}
                 response['error'] = 'You do not own this piece.'
                 self.socket.send(json.dumps(response))
-            else:
-                res = self.game_board.Move(src, dest)
-                response = {}
-                response['result'] = res
-                self.socket.send(json.dumps(response))
+                return
 
-                move = [{'from': point.Point(src.x, src.y),
-                        'to': point.Point(dest.x, dest.y),
-                        'eat': False}]
+            # Make sure passed moves are valid, Get piece possible moves.
+            for possibleMove in piece.PossibleMoves():
+                # Sanity validation on number of moves.
+                if(len(possibleMove) != len(requestedMoves)):
+                    continue
+                else:
+                    idx = 0
+                    # Make sure each move is valid.
+                    for move in possibleMove:
+                        if(move['from'].x != requestedMoves[idx]['from']['x'] or
+                        move['from'].y != requestedMoves[idx]['from']['y'] or
+                        move['to'].x != requestedMoves[idx]['to']['x'] or
+                        move['to'].y != requestedMoves[idx]['to']['y'] ):
+                            break
 
-                self.FireMove(move)
-                #self.FireMove(src, dest)
+                        # Advance
+                        idx+=1
+                    # Out of loop did we make it to the end of our check list?
+                    if(idx == len(requestedMoves) and idx == len(possibleMove)):
+                        # legit request, i've decided to pass possibleMove instade of
+                        # requetedMoves as it in a bit different format, which is supported
+                        # by the underline functions.
+                        res = self.game_board.MultipleMove(possibleMove)
+                        # TODO think what to do incase res equals false.
+                        response = {}
+                        response['result'] = res
+                        self.socket.send(json.dumps(response))
 
+                        # Let subscribers know about the move just performed.
+                        self.FireMove(possibleMove)
+
+                        # We're done!
+                        return
+
+            print "Given move request was denied."
+            response = {}
+            response['error'] = 'invalid move request.'
+            self.socket.send(json.dumps(response))
         else:
             print "Unknown action"
 

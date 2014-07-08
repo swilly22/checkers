@@ -139,8 +139,12 @@ class Board(object):
         moveCounter = 0
         for move in move_list:
             bCheckDirection = False if (moveCounter > 0 and move['eat']) else True
-            self.Move(move['from'], move['to'], bCheckDirection)
+            if(not self.Move(move['from'], move['to'], bCheckDirection)):
+                # TODO revert performed moves.
+                return False
             moveCounter += 1
+
+        return True
 
     def MultipleUndoMove(self, move_list):
         for move in reversed(move_list):
