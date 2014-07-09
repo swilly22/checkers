@@ -55,6 +55,9 @@ class Player(object):
     def OpponentMove(self, move):
         pass
 
+    def OpponentQueen(self, position):
+        pass
+
     def Queened(self, position):
         pass
 
@@ -120,12 +123,18 @@ class HumanPlayer(Player):
         pass
 
     def OpponentMove(self, moves):
-        # Send message to player, letting him / her know its her turn to play.
+        # Send message to player.
         response = {}
         response['fromServer'] = True
         response['action'] = config.MOVE
         response['moves'] = moves
         self.socket.send(json.dumps(response))
+
+    def OpponentQueen(self, position):
+        # Send message to player, currently I don't see a reason why not
+        # reuse the Queened method, although it's not this player who's
+        # getting a new queen.
+        self.Queened(position)
 
     # TODO, move this Method to some place else.
     def InitialBoard(self):
@@ -406,7 +415,6 @@ class Game(object):
     #def OnMove(self, src, dest):
     def OnMove(self, move):
         # Update other player about the move.
-        #self.currentPlayer.opponent.OpponentMove(src, dest)
         self.currentPlayer.opponent.OpponentMove(move)
 
         # Did checker reached the end of the board? if so queen it.
@@ -424,8 +432,10 @@ class Game(object):
                 self.board.RemovePiece(dest)
                 # Add new queen.
                 self.board.AddPiece(queen, dest)
-                #Let player know he / she just got a new queen.
+                # Let player know he / she just got a new queen.
                 self.currentPlayer.Queened(dest)
+                # Let opponent know about this new queen.
+                self.currentPlayer.opponent.OpponentQueen(dest)
 
         # We'll figure out if a move was an "eat" move by the distance of the move.
         #bEat = (abs(src.x - dest.x) == 2)

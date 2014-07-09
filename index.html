@@ -182,7 +182,7 @@ function onDocumentMouseUp(event) {
   // Add move to moves list.
   if(moves.length > 0) {
     // Make sure player moves with the previous piece.
-    lastMove = moves[moves.length-1].to;
+    var lastMove = moves[moves.length-1].to;
     if(lastMove.x != selected_checker.board_position.x ||
       lastMove.y != selected_checker.board_position.y) {
       // Sorry you must use the same piece.
@@ -200,6 +200,16 @@ function onDocumentMouseUp(event) {
   // Make sure move is legal.
   server.RequestPossibleMoves(selected_checker.board_position, 
     function(response) {
+      if(response.hasOwnProperty('error')) {
+        // Error occurred
+        // Restore piece to it's original location.
+        var last_move = moves[moves.length-1];
+        selected_checker.AnimateMove(last_move["from"]);
+        // Clear move list.
+        moves.splice(0, moves.length);
+        return;
+      }
+
       var play = null;
       var status = -1;  // Not a legal move.
 
@@ -250,6 +260,7 @@ function onDocumentMouseUp(event) {
       }
       else if (status == 0) {
         // Update board && checker, but palyer isn't done yet.
+        idxMoves--; // index to last element.
         board.MoveChecker(moves[idxMoves].from, moves[idxMoves].to);
         return;
       }
@@ -260,9 +271,9 @@ function onDocumentMouseUp(event) {
         // Let server know about the move.
         server.UpdatePiecePosition(moves, 
           function(response) {
+            // Clear moves list.
+            moves.splice(0, moves.length);
             if(response.result == true) {
-              // Clear moves list.
-              moves.splice(0, moves.length);
               if(play[0].eat == true) {
                 console.log("Eat move.");
               }
