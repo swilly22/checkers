@@ -11,3 +11,7 @@ PLAY = 3
 WAIT = 4
 JOIN = 5
 QUEENED = 6
+
+
+CHECKER = 0
+QUEEN = 1

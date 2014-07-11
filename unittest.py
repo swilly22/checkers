@@ -5,7 +5,6 @@ import Tree
 import checkers
 import checker
 
-
 def TestInitializedBoard():
     game_board = board.Board()
 
@@ -138,7 +137,6 @@ def TestEatMoves():
 
     game_board.Move(point.Point(2, 2), point.Point(3, 1))
     game_board.Move(point.Point(5, 1), point.Point(4, 0))
-    print "Debug from here."
     game_board.Move(point.Point(4, 0), point.Point(2, 2))
     assert (len(blacks) == 12)
     assert (len(whites) == 11)
@@ -184,7 +182,8 @@ def TestUndoMove():
     assert (game_board[3][7] == None)
     assert (game_board[5][5] != None)
 
-    game_board.UndoMove(point.Point(3, 7), point.Point(5, 5))
+    print "debug from here"
+    game_board.UndoMove(point.Point(3, 7), point.Point(5, 5), True)
     print(len(blacks))
     assert (len(blacks) == 12)
     assert (game_board[4][6] != None)

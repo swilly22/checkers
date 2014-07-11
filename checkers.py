@@ -7,20 +7,6 @@ import json
 import random
 from abc import ABCMeta, abstractmethod
 
-
-class Play(object):
-    def __init__(self, _from, _to):
-        self._from = _from
-        self._to = _to
-
-    @property
-    def From(self):
-        return self._from
-
-    @property
-    def To(self):
-        return self._to
-
 class Player(object):
     __metaclass__ = ABCMeta
     def __init__(self, _color, _checkers, _game_board):
@@ -436,12 +422,6 @@ class Game(object):
                 self.currentPlayer.Queened(dest)
                 # Let opponent know about this new queen.
                 self.currentPlayer.opponent.OpponentQueen(dest)
-
-        # We'll figure out if a move was an "eat" move by the distance of the move.
-        #bEat = (abs(src.x - dest.x) == 2)
-        #if(bEat == True and piece.CanEat(True) and not bQueen):
-            # Keep eating, with specific piece
-            #self.currentPlayer.Play(piece, True)
         
         self.ChangeTurn()
         self.GameLoop()
