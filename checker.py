@@ -26,19 +26,19 @@ class Checker(object):
 
     @property
     def Type(self):
-        return config.CHECKER if self.__class__.__name__ == "Checker" else config.QUEEN
+        return config.CHECKER
 
     def Move(self, location):
         self.position = point.Point(location.x, location.y)
 
     def CanEat(self, eat_mode=False):
         for move in self.PossibleMoves(eat_mode):
-            if (move[0]['eat'] == 1):
+            if (move[0].Eat):
                 return True
 
         return False
 
-    def PossibleMoves(self, eat_mode=False):
+    def PossibleMovesDeprecated(self, eat_mode=False):
 
         moves = []
 
@@ -106,16 +106,16 @@ class Checker(object):
         else:
             return moves
 
-    def ShouldTurnIntoQueen(self, xPosition):
+    def ShouldTurnIntoQueen(self, position):
         if(self.Type == config.QUEEN):
             return False
 
         if(self.advanceDirection == 1):
-            if(xPosition == config.BOARD_HEIGHT):
+            if(position.x == config.BOARD_HEIGHT):
                 return True
 
         if(self.advanceDirection == -1):
-            if(xPosition == 0):
+            if(position.x == 0):
                 return True
 
         return False
@@ -130,7 +130,8 @@ class Checker(object):
                 dest = point.Point(self.position.x + self.advanceDirection, self.position.y + YDirection)
                 if (self.game_board[dest.x][dest.y] == None):
                     bQueen = self.ShouldTurnIntoQueen(dest)
-                    moves.append(play.Play(self.Position, dest, bQueened=bQueen))
+                    move = play.Play(self.Position, dest, bQueened=bQueen)
+                    moves.append([move])
 
                 # Enemy ahead
                 elif (self.game_board[dest.x][dest.y].Color != self.Color):
@@ -196,7 +197,7 @@ class Checker(object):
                 else:
                     tmp.append(eat_move)
 
-                self.game_board.UndoMove(eat_move)
+                self.game_board.UndoMove(eat_move[0])
 
             eat_moves = tmp
             return eat_moves
@@ -209,25 +210,9 @@ class Queen(Checker):
         # Call parent constructor.
         Checker.__init__(self, _color, location, _game_board)
 
-    def CanEat(self):
-        # Can we eat?
-        for XDirection in [-1,1]:
-            for YDirection in [-1,1]:
-                currentPosition = point.Point(self.position.x, self.position.y)
-
-                while(self.game_board.WithinBounds(currentPosition.x + XDirection, currentPosition.y + YDirection)):
-                    piece = self.game_board[currentPosition.x + XDirection][currentPosition.y + YDirection]
-                    if(piece != None and
-                       piece.Color != self.Color and
-                       self.game_board.WithinBounds(currentPosition.x + 2 * XDirection, currentPosition.y + 2 * YDirection) and
-                       self.game_board[currentPosition.x + 2 * XDirection][currentPosition.y + 2 * YDirection] == None):
-                            return True
-
-                    # Move
-                    currentPosition = point.Point(currentPosition.x + XDirection,
-                                                  currentPosition.y + YDirection)
-
-        return False
+    @property
+    def Type(self):
+        return config.QUEEN
 
     def PossibleMoves(self, eat_mode=False):
 
@@ -238,41 +223,39 @@ class Queen(Checker):
             for YDirection in [-1,1]:
                 currentPosition = point.Point(self.position.x, self.position.y)
                 while(board.Board.WithinBounds(currentPosition.x, currentPosition.y)):
-                    #print(board.Board.WithinBounds(currentPosition.x, currentPosition.y))
                     # Position empty
-                    if (board.Board.WithinBounds(currentPosition.x + XDirection,
-                                                 currentPosition.y + YDirection)):
-                        piece = self.game_board[currentPosition.x + XDirection][currentPosition.y + YDirection]
+                    dest = point.Point(currentPosition.x + XDirection, currentPosition.y + YDirection)
+                    if (board.Board.WithinBounds(dest.x, dest.y)):
+                        piece = self.game_board[dest.x][dest.y]
                         if(piece == None):
-                            moves.append([{'from': self.Position, # Original position
-                                           'to': point.Point(currentPosition.x + XDirection, currentPosition.y + YDirection),
-                                           'eat': False}])
+                            move = play.Play(currentPosition, dest)
+                            moves.append([move])
                         # Enemy ahead
                         elif (piece.Color != self.Color):
                             # Is it possible to EAT ?
-                            if ((board.Board.WithinBounds(currentPosition.x + 2 * XDirection, currentPosition.y + 2 * YDirection)) and
-                                    (self.game_board[currentPosition.x + 2 * XDirection][currentPosition.y + 2 * YDirection] == None)):
+                            eatPosition = dest
+                            dest = point.Point(currentPosition.x + 2 * XDirection, currentPosition.y + 2 * YDirection)
+                            eatColor = self.game_board[eatPosition.x][eatPosition.y].Color
+                            eatType = self.game_board[eatPosition.x][eatPosition.y].Type
+
+                            if ((board.Board.WithinBounds(dest.x, dest.x)) and
+                                    (self.game_board[dest.x][dest.y] == None)):
                                 bMustEat = True
-                                moves.append([{'from': self.Position, # Original position
-                                               'to': point.Point(currentPosition.x + 2 * XDirection,
-                                                                 currentPosition.y + 2 * YDirection),
-                                               'eat': True}])
-                                # Break out of while loop as queen can't keep
-                                # movein after this eat unless it continues on eating
-                                # which will be reviled in recursive calls below.
+                                move = play.Play(currentPosition, dest, True, eatPosition, eatColor, eatType, False)
+                                moves.append([move])
                                 break
                     # Advance.
                     currentPosition = point.Point(currentPosition.x + XDirection, currentPosition.y + YDirection)
 
         if (bMustEat == True):
             # Remove all NOT eat moves.
-            eat_moves = [eat_move for eat_move in moves if eat_move[0]['eat'] == True]
+            eat_moves = [eat_move for eat_move in moves if eat_move[0].Eat == True]
 
             # See if we can eat more than one checker.
             tmp = []  # tmp is here because we cannot modify iterated list.
             for eat_move in eat_moves:
                 previous_position = self.Position
-                self.game_board.Move(self.Position, eat_move[0]['to'])
+                self.game_board.Move(self.Position, eat_move[0].To)
                 additionalMoves = self.PossibleMoves(True)
                 if (len(additionalMoves) > 0):
                     for addition in additionalMoves:
@@ -280,7 +263,7 @@ class Queen(Checker):
                 else:
                     tmp.append(eat_move)
 
-                self.game_board.UndoMove(previous_position, eat_move[0]['to'])
+                self.game_board.UndoMove(previous_position, eat_move[0].To)
 
             eat_moves = tmp
             return eat_moves

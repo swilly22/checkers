@@ -3,6 +3,7 @@ import config
 import point
 import math
 import sys
+import play
 
 class Board(object):
     def __init__(self):        
@@ -39,68 +40,45 @@ class Board(object):
                     self.checkers[piece.Color].remove(piece)
                     self.board[x][y] = None
 
-    def UndoMove(self, source, dest, bEat=False):
+    def UndoMove(self, move):
         # Sanity checks
-        if (not self.IsLegalMove(source, dest, bEat)):
+        if (not self.IsLegalUndoMove(move)):
             return False
 
-        if (self[source.x][source.y] != None):
-            print("UndoMove, Illegal move, UndoMove self[source.x][source.y] != None")
-            return False
+        # Get piece.
+        piece = self[move.To.x][move.To.y]
 
-        piece = self[dest.x][dest.y]
-        if (piece == None):
-            print("UndoMove, piece missing, UndoMove")
-            return False
+        # Are we undoing an eat move?
+        if(move.Eat):
+            if(move.EatType == config.CHECKER):
+                dead = checker.Checker(move.EatColor, move.EatPosition, self)
+            else:
+                dead = checker.Queen(move.EatColor, move.EatPosition, self)
 
-        XDistance = abs(source.x - dest.x)
-        YDistance = abs(source.y - dest.y)
-
-        XDirection = (dest.x - source.x)  / XDistance
-        YDirection = (dest.y - source.y)  / YDistance
-
-        # check if we're undoing a queen's move or a simple checker's move.
-        if(piece.__class__.__name__ == "Checker"):
-            # distance should be either 1 or 2
-            if (XDistance > 2 or YDistance > 2):
-                print("UndoMove, Impossible move.")
-                return False
-
-            # Make sure move direction is correct for selected piece.
-            if (not bEat and piece.AdvanceDirection != XDirection):
-                print "UndoMove, Your going in the wrong direction"
-                return False
-
-            if(bEat and XDistance != 2):
-                print "UndoMove, checker eat move should be exactly two steps"
-                return False
-
-        if(bEat):
-
-            deadXPos = dest.x - XDirection
-            deadYPos = dest.y - YDirection
-            dead = self[deadXPos][deadYPos]
-
-            if (dead != None):
-                print("UndoMove, Expecting empty spot.")
-                return
-
-            color = config.WHITE if (piece.Color == config.BLACK) else config.BLACK
-
-            dead = checker.Checker(color, point.Point(deadXPos, deadYPos), self)
-
-            self.board[deadXPos][deadYPos] = dead
+            # Add revive piece to board
+            self.board[dead.Position.x][dead.Position.y] = dead
             self.checkers[dead.Color].append(dead)
 
-        piece.Move(source)
-        self.board[source.x][source.y] = piece
-        self.board[dest.x][dest.y] = None
+        # Undo move, restore piece to its original position
+        piece.Move(move.From)
+        self.board[move.From.x][move.From.y] = piece
+        self.board[move.To.x][move.To.y] = None
+
+        return True
 
     def MultipleMove(self, move_list):
+        # Sanity check, make sure that if there's more than one move in the list
+        # then all moves are eat moves.
+        if(len(move_list) > 1):
+            for move in move_list:
+                if not move.Eat:
+                    print("Move must be an wat move.")
+                    return False
+
         moveCounter = 0
         for move in move_list:
             bCheckDirection = False if (moveCounter > 0 and move['eat']) else True
-            if(not self.Move(move['from'], move['to'], bCheckDirection)):
+            if(not self.Move(move, bCheckDirection)):
                 # TODO revert performed moves.
                 return False
             moveCounter += 1
@@ -109,84 +87,211 @@ class Board(object):
 
     def MultipleUndoMove(self, move_list):
         for move in reversed(move_list):
-            self.UndoMove(move['from'], move['to'], move['eat'])
+            self.UndoMove(move)
 
-    def IsLegalMove(self, source, dest, bEat):
-        if (not self.WithinBounds(source.x, source.y)):
+    def IsLegalMove(self, move, bCheckDirection = True):
+
+        # Make sure play is within board bonds.
+        if (not self.WithinBounds(move.From.x, move.From.y)):
             print("Illegal move, WithinBounds")
             return False
 
-        if (not self.WithinBounds(dest.x, dest.y)):
+        if (not self.WithinBounds(move.To.x, move.To.y)):
             print("Illegal move, WithinBounds")
             return False
 
-        if ((source.x == dest.x) or (source.y == dest.y)):
+        # Make sure we're not staying put.
+        if ((move.From.x == move.To.x) or (move.From.y == move.To.y)):
             print("Illegal move, you must move in both directions")
             return False
 
-        XDistance = abs(source.x - dest.x)
-        YDistance = abs(source.y - dest.y)
+        # Make sure destination is not occupied
+        if(self[move.To.x][move.To.y] != None):
+            print("destination position occupied")
+            return False
 
+        # Get move piece.
+        piece = self[move.From.x][move.From.y]
+
+        # Make sure piece exists
+        if(piece == None):
+            print("Missing expected piece")
+            return False
+
+        # Determine travel distance
+        # Find out move direction: up left, down left, etc.
+        # Division is necessary to keep Distance equal to 1 / -1, (think vector normal).
+        XDistance = abs(move.From.x - move.To.x)
+        YDistance = abs(move.From.y - move.To.y)
+        XDirection = (move.To.x - move.From.x) / XDistance
+        YDirection = (move.To.y - move.From.y) / YDistance
+
+        # Make sure we're travailing the same distance in both directions
         if(XDistance != YDistance):
             print("Illegal move, you must move an equal distance in both directions")
             return False
 
-        if(bEat == True and (XDistance < 2 or YDistance < 2)):
-            print("Illegal move, when eating piece must travel at least two steps")
-            return False
+        # Incase we're dealing with a checker (not a queen).
+        if(piece.Type == config.CHECKER):
+            # Make sure travel distance is not bigger then two.
+            if(XDistance > 2 or YDistance > 2):
+                print("Checker can travel at most two steps.")
+                return False
 
-        return True
-
-    def Move(self, source, dest, bCheckDirection = True, bEat = False):
-
-        # Sanity checks.
-        if(not self.IsLegalMove(source, dest, bEat)):
-            return False
-
-        if (self[source.x][source.y] == None):
-            print("Move, piece missing")
-            return False
-
-        if (self[dest.x][dest.y] != None):
-            print("Move, Illegal move from %d,%d to %d,%d" % (source.x, source.y, dest.x, dest.y))
-            return False
-
-        piece = self[source.x][source.y]
-        # Find out move direction: up left, down left, etc.
-        # Division is necessary to keep Distance equal to 1 / -1, (think vector normal).
-        XDirection = (dest.x - source.x) / (abs(source.x - dest.x))
-        YDirection = (dest.y - source.y) / (abs(source.x - dest.x))
-
-        if (piece.__class__.__name__ == "Checker"):
             # Check move direction.
             if(bCheckDirection and piece.AdvanceDirection != XDirection):
                 print "Move, Your going in the wrong direction"
                 return False
 
-            # Checker can't move more than two steps in a single move
-            if ((abs(source.x - dest.x) > 2 or abs(source.y - dest.y) > 2)):
-                print "Move, Checker can't move more than two steps in a single move."
+        # Incase of an 'eat' move:
+        if(move.Eat == True):
+            # Distance should be exactly two.
+            if(XDistance != 2 or YDistance != 2):
+                print("Illegal move, when eating piece must travel two steps")
                 return False
 
+            # Make sure deadPosition is valid.
+            deadPosition = point.Point(move.To.x - XDirection, move.To.y - YDirection)
+            if(deadPosition.x != move.EatPosition.x or deadPosition.y != move.EatPosition.y):
+                print("Invalid eat position")
+                return False
+
+            deadPiece = self[move.EatPosition.x][move.EatPosition.y]
+            if(deadPiece == None):
+                print("Missing expected piece")
+                return False
+
+            # Make sure play data matches board state
+            if(deadPiece.Color == piece.Color):
+                print("You can't eat your own kind")
+                return False
+
+            # Make sure no cannibalism is takes place.
+            if(deadPiece.Color != move.EatColor):
+                print("Color conflict")
+                return False
+
+            # Make sure play data matches board state
+            if(deadPiece.Type != move.EatType):
+                print("Type conflict")
+                return False
+
+        # at last
+        return True
+
+    def IsLegalUndoMove(self, move):
+        # Make sure play is within board bonds.
+        if (not self.WithinBounds(move.From.x, move.From.y)):
+            print("Illegal move, WithinBounds")
+            return False
+
+        if (not self.WithinBounds(move.To.x, move.To.y)):
+            print("Illegal move, WithinBounds")
+            return False
+
+        # Make sure we're not staying put.
+        if ((move.From.x == move.To.x) or (move.From.y == move.To.y)):
+            print("Illegal move, you must move in both directions")
+            return False
+
+        # Make sure origin is free
+        if(self[move.From.x][move.From.y] != None):
+            print("destination position occupied")
+            return False
+
+        # Get move piece.
+        piece = self[move.To.x][move.To.y]
+
+        # Make sure piece exists
+        if(piece == None):
+            print("Missing expected piece")
+            return False
+
+        # Determine travel distance
+        # Find out move direction: up left, down left, etc.
+        # Division is necessary to keep Distance equal to 1 / -1, (think vector normal).
+        XDistance = abs(move.From.x - move.To.x)
+        YDistance = abs(move.From.y - move.To.y)
+        XDirection = (move.To.x - move.From.x) / XDistance
+        YDirection = (move.To.y - move.From.y) / YDistance
+
+        # Make sure we're travailing the same distance in both directions
+        if(XDistance != YDistance):
+            print("Illegal move, you must move an equal distance in both directions")
+            return False
+
+        # Incase we're dealing with a checker (not a queen).
+        if(piece.Type == config.CHECKER):
+            # Make sure travel distance is not bigger then two.
+            if(XDistance > 2 or YDistance > 2):
+                print("Checker can travel at most two steps.")
+                return False
+
+            # TODO Check move direction.
+
+        # Incase of an 'eat' move:
+        if(move.Eat == True):
+            # Distance should be exactly two.
+            if(XDistance != 2 or YDistance != 2):
+                print("Illegal move, when eating piece must travel two steps")
+                return False
+
+            # TODO Make sure deadPosition is valid.
+
+            deadPiece = self[move.EatPosition.x][move.EatPosition.y]
+            if(deadPiece != None):
+                print("Expected a blank spot.")
+                return False
+
+            # Make sure no cannibalism is takes place.
+            if(piece.Color == move.EatColor):
+                print("Color conflict")
+                return False
+
+        # at last
+        return True
+
+    def Move(self, src, dest, bCheckDirection = True):
+
+        # Determine travel distance
+        # Find out move direction: up left, down left, etc.
+        # Division is necessary to keep Distance equal to 1 / -1, (think vector normal).
+        piece = self[src.x][src.y]
+        XDistance = abs(src.x - dest.x)
+        YDistance = abs(src.y - dest.y)
+
+        # check for division by zero
+        if(XDistance == 0 or YDistance == 0):
+            return None
+
+        XDirection = (dest.x - src.x) / XDistance
+        YDirection = (dest.y - src.y) / YDistance
+
+        bEat = False
+        move = play.Play(src, dest, False, None, None,None, piece.ShouldTurnIntoQueen(dest))
+
+        # is this an eat move?
+        if(XDistance > 1):
+            deadPosition = point.Point(dest.x - XDirection, dest.y - YDirection)
+            deadPiece = self[deadPosition.x][deadPosition.y]
+            if (deadPiece != None):
+                bEat = True
+                move = play.Play(src, dest, bEat, deadPosition, deadPiece.Color, deadPiece.Type, piece.ShouldTurnIntoQueen(dest))
+            else:
+                bEat = False
+
+        # Sanity checks, enforces game logic / rules.
+        if(not self.IsLegalMove(move, bCheckDirection)):
+            return None
+
         # Is it an eat move?
-        if (abs(source.x - dest.x) > 1):
-            eatXPos = dest.x - XDirection
-            eatYPos = dest.y - YDirection
-            dead = self[eatXPos][eatYPos]
+        if (bEat):
+            self.RemovePiece(deadPosition)
 
-            # Make sure there's a piece at 'skipped' position.
-            if (dead != None):
-                if (dead.Color == piece.Color):
-                    print("Move, Can't eat your own kind.")
-                    return False
-                # Eat!
-                self.RemovePiece(dead.Position)
-
-        # Legal move.
         piece.Move(dest)
         self.board[dest.x][dest.y] = piece
-        self.board[source.x][source.y] = None
-        return True
+        self.board[src.x][src.y] = None
+        return move
 
     def RemovePiece(self, location):
         # Sanity checks.
