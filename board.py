@@ -66,19 +66,19 @@ class Board(object):
 
         return True
 
-    def MultipleMove(self, move_list):
+    def MultipleMove(self, play_list):
         # Sanity check, make sure that if there's more than one move in the list
         # then all moves are eat moves.
-        if(len(move_list) > 1):
-            for move in move_list:
-                if not move.Eat:
+        if(len(play_list) > 1):
+            for move in play_list:
+                if not move['eat']:
                     print("Move must be an wat move.")
                     return False
 
         moveCounter = 0
-        for move in move_list:
+        for move in play_list:
             bCheckDirection = False if (moveCounter > 0 and move['eat']) else True
-            if(not self.Move(move, bCheckDirection)):
+            if(not self.Move(move['from'], move['to'], bCheckDirection)):
                 # TODO revert performed moves.
                 return False
             moveCounter += 1
@@ -143,11 +143,23 @@ class Board(object):
                 print "Move, Your going in the wrong direction"
                 return False
 
-        # Incase of an 'eat' move:
+            # Incase of an 'eat' move:
+            if(move.Eat == True):
+                # Distance should be exactly two.
+                if(XDistance != 2 or YDistance != 2):
+                    print("Illegal move, when eating piece must travel two steps")
+                    return False
+
+            if(XDistance == 2 or YDistance == 2):
+                if(not move.Eat):
+                    print "Checker can't travel a distance of two without eating."
+                    return False
+
+
         if(move.Eat == True):
-            # Distance should be exactly two.
-            if(XDistance != 2 or YDistance != 2):
-                print("Illegal move, when eating piece must travel two steps")
+            # Distance should be at least two.
+            if(XDistance < 2 or YDistance < 2):
+                print("Illegal move, when eating piece must travel at least two steps")
                 return False
 
             # Make sure deadPosition is valid.
@@ -257,6 +269,9 @@ class Board(object):
         # Find out move direction: up left, down left, etc.
         # Division is necessary to keep Distance equal to 1 / -1, (think vector normal).
         piece = self[src.x][src.y]
+        if(piece == None):
+            return None
+
         XDistance = abs(src.x - dest.x)
         YDistance = abs(src.y - dest.y)
 
@@ -268,9 +283,9 @@ class Board(object):
         YDirection = (dest.y - src.y) / YDistance
 
         bEat = False
-        move = play.Play(src, dest, False, None, None,None, piece.ShouldTurnIntoQueen(dest))
+        move = play.Play(src, dest, False, None, None, None, piece.ShouldTurnIntoQueen(dest))
 
-        # is this an eat move?
+        # is this a potential eat move?
         if(XDistance > 1):
             deadPosition = point.Point(dest.x - XDirection, dest.y - YDirection)
             deadPiece = self[deadPosition.x][deadPosition.y]
@@ -280,17 +295,23 @@ class Board(object):
             else:
                 bEat = False
 
+        return self.PlayMove(move, bCheckDirection)
+
+    def PlayMove(self, move, bCheckDirection = True):
+
         # Sanity checks, enforces game logic / rules.
         if(not self.IsLegalMove(move, bCheckDirection)):
             return None
 
         # Is it an eat move?
-        if (bEat):
-            self.RemovePiece(deadPosition)
+        if (move.Eat):
+            self.RemovePiece(move.EatPosition)
 
-        piece.Move(dest)
-        self.board[dest.x][dest.y] = piece
-        self.board[src.x][src.y] = None
+        piece = self[move.From.x][move.From.y]
+        piece.Move(move.To)
+        self.board[move.To.x][move.To.y] = piece
+        self.board[move.From.x][move.From.y] = None
+
         return move
 
     def RemovePiece(self, location):
