@@ -25,7 +25,7 @@ class server(ws4py.websocket.WebSocket):
 
             # Assuming we've received a JOIN MSG.
             human = checkers.HumanPlayer(config.WHITE, checkers.game.board.checkers[config.WHITE], checkers.game.board, self)
-            comp = checkers.CompPlayer(config.WHITE, checkers.game.board.checkers[config.BLACK], checkers.game.board)
+            comp = checkers.CompPlayer(config.BLACK, checkers.game.board.checkers[config.BLACK], checkers.game.board)
             checkers.game.JoinPlayer(human)
             checkers.game.JoinPlayer(comp)
 

@@ -69,21 +69,26 @@ class Board(object):
     def MultipleMove(self, play_list):
         # Sanity check, make sure that if there's more than one move in the list
         # then all moves are eat moves.
+        performedMoves = []
+
         if(len(play_list) > 1):
             for move in play_list:
                 if not move['eat']:
-                    print("Move must be an wat move.")
+                    print("Move must be an eat move.")
                     return False
 
         moveCounter = 0
         for move in play_list:
             bCheckDirection = False if (moveCounter > 0 and move['eat']) else True
-            if(not self.Move(move['from'], move['to'], bCheckDirection)):
+            performedMove = self.Move(move['from'], move['to'], bCheckDirection)
+            if(performedMove == None):
                 # TODO revert performed moves.
-                return False
+                return None
+
+            performedMoves.append(performedMove)
             moveCounter += 1
 
-        return True
+        return performedMoves
 
     def MultipleUndoMove(self, move_list):
         for move in reversed(move_list):
@@ -239,13 +244,19 @@ class Board(object):
                 print("Checker can travel at most two steps.")
                 return False
 
+            if(move.Eat == True):
+                # Distance should be exactly two.
+                if(XDistance != 2 or YDistance != 2):
+                    print("Illegal move, when eating piece must travel two steps")
+                    return False
+
             # TODO Check move direction.
 
         # Incase of an 'eat' move:
         if(move.Eat == True):
             # Distance should be exactly two.
-            if(XDistance != 2 or YDistance != 2):
-                print("Illegal move, when eating piece must travel two steps")
+            if(XDistance < 2 or YDistance < 2):
+                print("Illegal move, when eating piece must travel at least two steps")
                 return False
 
             # TODO Make sure deadPosition is valid.
@@ -270,6 +281,8 @@ class Board(object):
         # Division is necessary to keep Distance equal to 1 / -1, (think vector normal).
         piece = self[src.x][src.y]
         if(piece == None):
+            print(src)
+            print "Missing piece at source location."
             return None
 
         XDistance = abs(src.x - dest.x)

@@ -416,6 +416,7 @@ def TestQueen():
 
     moves = queen.PossibleMoves()
 
+    assert (queen.Position.x == 0 and queen.Position.y == 0)
     assert(len(moves) == 1)
     assert(len(moves[0]) == 3)
     assert (moves[0][0]['from'].x == 0 and moves[0][0]['from'].y == 0 and moves[0][0]['eat'] == True)
@@ -429,7 +430,16 @@ def TestQueen():
 
     game_board.MultipleMove(moves[0])
     assert(len(blacks) == 0)
-    
+
+    # Another test, make sure we don't jump over friends.
+    game_board.ClearBoard()
+    queen = checker.Queen(config.BLACK, point.Point(0, 0), game_board)
+    friend = checker.Checker(config.BLACK, point.Point(3, 3), game_board)
+    game_board.AddPiece(queen, queen.Position)
+    game_board.AddPiece(friend, friend.Position)
+
+    moves = queen.PossibleMoves()
+    assert (len(moves) == 2)
     return True
 
 

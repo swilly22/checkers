@@ -127,6 +127,24 @@ class HumanPlayer(Player):
         whitesPositions = []
         blacksPosition = []
 
+        # test
+        self.game_board.ClearBoard()
+        queen = checker.Queen(config.BLACK, point.Point(0, 0), self.game_board)
+        a = checker.Checker(config.BLACK, point.Point(3, 3), self.game_board)
+        b = checker.Checker(config.BLACK, point.Point(5, 3), self.game_board)
+        c = checker.Checker(config.BLACK, point.Point(5, 1), self.game_board)
+
+        d = checker.Checker(config.WHITE, point.Point(1, 1), self.game_board)
+        e = checker.Checker(config.WHITE, point.Point(0, 4), self.game_board)
+
+        self.game_board.AddPiece(queen, queen.Position)
+        self.game_board.AddPiece(a, a.Position)
+        self.game_board.AddPiece(b, b.Position)
+        self.game_board.AddPiece(c, c.Position)
+        self.game_board.AddPiece(d, d.Position)
+        self.game_board.AddPiece(e, e.Position)
+
+        # end of test
         for piece in self.game_board.checkers[config.WHITE]:
             whitesPositions.append({'x': piece.Position.x, 'y': piece.Position.y})
 
@@ -213,7 +231,7 @@ class HumanPlayer(Player):
                         res = self.game_board.MultipleMove(possibleMove)
                         # TODO think what to do incase res equals false.
                         response = {}
-                        response['result'] = res
+                        response['result'] = True if(res != None) else False
                         self.socket.send(json.dumps(response))
 
                         # Let subscribers know about the move just performed.
@@ -274,9 +292,9 @@ class CompPlayer(Player):
                 # Experimental
                 node.move_taken = move
                 # End of Experimental
-                self.game_board.MultipleMove(move)
+                performedMoves = self.game_board.MultipleMove(move)
                 self.LookAHead(node, 4)
-                self.game_board.MultipleUndoMove(move)
+                self.game_board.MultipleUndoMove(performedMoves)
 
             self.Ratio(root)
             #print root.Value
@@ -350,13 +368,13 @@ class CompPlayer(Player):
                 node = root.AddNode([0, 0])  # neutral.
 
             # Perform move.
-            self.game_board.MultipleMove(move)
+            performedMoves = self.game_board.MultipleMove(move)
 
             # Call recursive.
             self.LookAHead(node, depth - 1)
 
             # Restore state.
-            self.game_board.MultipleUndoMove(move)
+            self.game_board.MultipleUndoMove(performedMoves)
 
     def Ratio(self, root):
         if (root == None):
