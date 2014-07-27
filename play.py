@@ -44,3 +44,17 @@ class Play(object):
     def ToJson(self):
         dic = {'from' : self.source, 'to' : self.dest, 'bEat' : self.bEat, 'eatPosition' : self.eatPosition, 'eatColor' : self.eatColor, 'eatType' : self.eatType}
         return json.dumps(dic)
+
+    def __str__(self):
+        play_str = "source = " + str(self.source) + " dest = " + str(self.dest) + " bEat = " + str(self.bEat)
+        if(self.eatPosition):
+            play_str += "eatPosition = " + str(self.eatPosition) + " "
+            play_str += "eatColor = " + str(self.eatColor) + " "
+            play_str += "eatType = " + str(self.eatType) + " "
+        else:
+            play_str += "eatPosition = None"
+            play_str += "eatColor = None"
+            play_str += "eatType = None"
+
+        play_str += "self.bQueened = " + str(self.bQueened)
+        return play_str

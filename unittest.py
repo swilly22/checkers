@@ -193,6 +193,65 @@ def TestUndoMove():
     assert (game_board[4][6].Color == config.BLACK)
     assert (game_board[3][7].Color == config.WHITE)
 
+    # Test Undo Queen eats 3 checkers.
+    game_board.ClearBoard()
+    queen = checker.Queen(config.WHITE, point.Point(0,0), game_board)
+    checker1 = checker.Checker(config.BLACK, point.Point(4,4), game_board)
+    checker2 = checker.Checker(config.BLACK, point.Point(4,6), game_board)
+    checker3 = checker.Checker(config.BLACK, point.Point(2,6), game_board)
+
+    game_board.AddPiece(queen, queen.Position)
+    game_board.AddPiece(checker1, checker1.Position)
+    game_board.AddPiece(checker2, checker2.Position)
+    game_board.AddPiece(checker3, checker3.Position)
+
+    moves = queen.PossibleMoves()
+    play = game_board.MultipleMove(moves[0])
+
+    assert(len(game_board.checkers[config.BLACK]) == 0)
+
+    game_board.MultipleUndoMove(play)
+    assert(len(game_board.checkers[config.BLACK]) == 3)
+
+    assert (game_board[4][4] != None)
+    assert (game_board[4][4].Color == config.BLACK)
+    assert (game_board[4][4].Type == config.CHECKER)
+
+    assert (game_board[4][6] != None)
+    assert (game_board[4][6].Color == config.BLACK)
+    assert (game_board[4][6].Type == config.CHECKER)
+
+    assert (game_board[2][6] != None)
+    assert (game_board[2][6].Color == config.BLACK)
+    assert (game_board[2][6].Type == config.CHECKER)
+
+
+    # Test Undo Checker eats 2 queens.
+    game_board.ClearBoard()
+    piece = checker.Checker(config.WHITE, point.Point(3,3), game_board)
+    queen1 = checker.Queen(config.BLACK, point.Point(4,4), game_board)
+    queen2 = checker.Queen(config.BLACK, point.Point(4,6), game_board)
+
+    game_board.AddPiece(piece, piece.Position)
+    game_board.AddPiece(queen1, queen1.Position)
+    game_board.AddPiece(queen2, queen2.Position)
+
+    moves = piece.PossibleMoves()
+    play = game_board.MultipleMove(moves[0])
+
+    assert(len(game_board.checkers[config.BLACK]) == 0)
+
+    game_board.MultipleUndoMove(play)
+    assert(len(game_board.checkers[config.BLACK]) == 2)
+
+    assert (game_board[4][4] != None)
+    assert (game_board[4][4].Color == config.BLACK)
+    assert (game_board[4][4].Type == config.QUEEN)
+
+    assert (game_board[4][6] != None)
+    assert (game_board[4][6].Color == config.BLACK)
+    assert (game_board[4][6].Type == config.QUEEN)
+
     return True
 
 
@@ -459,31 +518,36 @@ def TestClearBoard():
 
     return True
 
-if (TestInitializedBoard() != True):
-    print "TestInitializedBoard failed"
+def main():
+    if (TestInitializedBoard() != True):
+        print "TestInitializedBoard failed"
 
-if(TestClearBoard() != True):
-    print "TestClearBoard failed"
+    if(TestClearBoard() != True):
+        print "TestClearBoard failed"
 
-if (TestSimpleMove() != True):
-    print "TestSimpleMove failed"
+    if (TestSimpleMove() != True):
+        print "TestSimpleMove failed"
 
-if (TestEatMoves() != True):
-    print "TestSimpleMove failed"
+    if (TestEatMoves() != True):
+        print "TestSimpleMove failed"
 
-if (TestUndoMove() != True):
-    print "TestUndoMove failed"
+    if (TestUndoMove() != True):
+        print "TestUndoMove failed"
 
-if (TestPossibleMoves() != True):
-    print "TestPossibleMoves failed"
+    if (TestPossibleMoves() != True):
+        print "TestPossibleMoves failed"
 
-if (TestTree() != True):
-    print"TestTree failed"
+    if (TestTree() != True):
+        print"TestTree failed"
 
-# #if(TestLookAhead() != True):
-# #print "TestLookAhead failed"
+    # #if(TestLookAhead() != True):
+    # #print "TestLookAhead failed"
 
-if (TestQueen() != True):
-    print "TestQueen failed"
+    if (TestQueen() != True):
+        print "TestQueen failed"
 
-print "test suite completed"
+    print "test suite completed"
+
+# Main
+if __name__ == "__main__":
+    main()
