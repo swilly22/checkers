@@ -58,7 +58,7 @@ function Move(position) {
   this.board_position = position;
 
   // TODO Think of a claver way to check rather or not fire this event.
-  if(this.color == COLOR_BLACK) {
+  if(this.color != player_color) {
     dispatchEvent(event);
   }
 }

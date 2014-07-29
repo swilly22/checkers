@@ -127,24 +127,6 @@ class HumanPlayer(Player):
         whitesPositions = []
         blacksPosition = []
 
-        # test
-        self.game_board.ClearBoard()
-        queen = checker.Queen(config.BLACK, point.Point(0, 0), self.game_board)
-        a = checker.Checker(config.BLACK, point.Point(3, 3), self.game_board)
-        b = checker.Checker(config.BLACK, point.Point(5, 3), self.game_board)
-        c = checker.Checker(config.BLACK, point.Point(5, 1), self.game_board)
-
-        d = checker.Checker(config.WHITE, point.Point(1, 1), self.game_board)
-        e = checker.Checker(config.WHITE, point.Point(0, 4), self.game_board)
-
-        self.game_board.AddPiece(queen, queen.Position)
-        self.game_board.AddPiece(a, a.Position)
-        self.game_board.AddPiece(b, b.Position)
-        self.game_board.AddPiece(c, c.Position)
-        self.game_board.AddPiece(d, d.Position)
-        self.game_board.AddPiece(e, e.Position)
-
-        # end of test
         for piece in self.game_board.checkers[config.WHITE]:
             whitesPositions.append({'x': piece.Position.x, 'y': piece.Position.y})
 
@@ -391,6 +373,9 @@ class Game(object):
         self.players = []
         self.currentPlayer = None
 
+    def IsGameFull(self):
+        return True if (len(self.players) == 2) else False
+
     def JoinPlayer(self, player):
         if(len(self.players) == 2):
             print "Game full."
@@ -407,6 +392,10 @@ class Game(object):
 
             self.currentPlayer = self.players[0]
             self.GameLoop()
+
+    def DropPlayer(self, player):
+        if player in self.players:
+            self.players.remove(player)
 
     def ChangeTurn(self):
         # Change turn.
@@ -467,4 +456,3 @@ class Game(object):
                 print "player2 win!"
 
 game = None
-# game.GameLoop()

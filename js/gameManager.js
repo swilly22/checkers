@@ -8,6 +8,7 @@ function JoinGame() {
   var request = {"action" : ACTIONS.JOIN};
   server.Send(request, function(response) {
     if(response.result == true) {
+      player_color = response.player_color;
       this.RequestBoard();
     }
   });
