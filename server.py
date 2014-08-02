@@ -10,13 +10,13 @@ cherrypy.config.update({'server.socket_port': 80})
 WebSocketPlugin(cherrypy.engine).subscribe()
 cherrypy.tools.websocket = WebSocketTool()
 
-class GameQueue:
 
+class GameQueue:
     def __init__(self):
         self.games = [checkers.Game()]
 
     def JoinPlayer(self, connection):
-        #TODO: LOCK!
+        # TODO: LOCK!
 
         # Get last game object in our list.
         game = self.games[-1]
@@ -28,7 +28,7 @@ class GameQueue:
             self.games.append(game)
 
         # Create a new player object.
-        color = config.WHITE if(len(game.players) == 0) else config.BLACK
+        color = config.WHITE if (len(game.players) == 0) else config.BLACK
         humanPlayer = checkers.HumanPlayer(color, game.board.checkers[color], game.board, connection)
 
         # Add player to game.
@@ -40,7 +40,7 @@ class GameQueue:
 
         # Get game object which given player takes part in.
         game = self.games[player.game_board]
-        if(game == None):
+        if (game == None):
             return
 
         # Drops player from game.
@@ -49,21 +49,20 @@ class GameQueue:
         if (len(game.players) == 0):
             self.games.remove(game)
 
+
 gGameQueue = GameQueue()
 
-class server(ws4py.websocket.WebSocket):
 
+class server(ws4py.websocket.WebSocket):
     def received_message(self, message):
         global gGameQueue
 
         print "message received."
-        if(self.MsgHandler != None):
+        if (self.MsgHandler != None):
             self.MsgHandler(message.data)
         else:
-
-
             # Assuming we've received a JOIN MSG.
-            #human = checkers.HumanPlayer(config.WHITE, checkers.game.board.checkers[config.WHITE], checkers.game.board, self)
+            # human = checkers.HumanPlayer(config.WHITE, checkers.game.board.checkers[config.WHITE], checkers.game.board, self)
             #comp = checkers.CompPlayer(config.BLACK, checkers.game.board.checkers[config.BLACK], checkers.game.board)
             #checkers.game.JoinPlayer(human)
             #checkers.game.JoinPlayer(comp)
@@ -80,16 +79,10 @@ class server(ws4py.websocket.WebSocket):
     def closed(self, code, reason=None):
         print "connection closed."
 
+
 class Root(object):
-
     def __init__(self):
-        hIndex = open("index.html", "r")
-        self.index_page = hIndex.read()
-        hIndex.close()
-
-    @cherrypy.expose
-    def index(self):
-        return self.index_page
+        pass
 
     @cherrypy.expose
     def ws(self):
@@ -100,9 +93,13 @@ class Root(object):
 def main():
     # Start webserver
     cherrypy.quickstart(Root(), '/', config={'/ws': {'tools.websocket.on': True, 'tools.websocket.handler_cls': server},
-                                         '/': {'tools.sessions.on': True, 'tools.staticdir.root': os.path.abspath(os.getcwd())},
-                                         '/js': {'tools.staticdir.on': True, 'tools.staticdir.dir': 'C:\\dev\\checkers\\js\\'},
-                                         '/images': {'tools.staticdir.on': True, 'tools.staticdir.dir': 'C:\\dev\\checkers\\images\\'}})
+                                             '/': {'tools.sessions.on': True, 'tools.staticdir.on': True,
+                                                   'tools.staticdir.dir': os.path.abspath(os.getcwd())},
+                                             '/js': {'tools.staticdir.on': True,
+                                                     'tools.staticdir.dir': 'C:\\dev\\checkers\\js\\'},
+                                             '/images': {'tools.staticdir.on': True,
+                                                         'tools.staticdir.dir': 'C:\\dev\\checkers\\images\\'}})
+
 
 if __name__ == '__main__':
     main()
