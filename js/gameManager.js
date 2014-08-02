@@ -9,6 +9,7 @@ function JoinGame() {
   server.Send(request, function(response) {
     if(response.result == true) {
       player_color = response.player_color;
+      SetUpCameraViewingPosition(player_color);
       this.RequestBoard();
     }
   });
@@ -21,12 +22,13 @@ function RequestBoard() {
 
 function HandleRequestBoard(data) {
   for(var idx = 0; idx < data.whites.length; idx++) {
-    var piecePos = data.whites[idx];
-    board.AddChecker("Checker", piecePos, COLOR_WHITE);
+    var piecePos = data.whites[idx];    
+    board.AddChecker("Checker", piecePos, PLAYER_WHITE);
   }
 
   for(var idx = 0; idx < data.blacks.length; idx++) {
     var piecePos = data.blacks[idx];
-    board.AddChecker("Checker", piecePos, COLOR_BLACK);
+    var black_color = colors[2];
+    board.AddChecker("Checker", piecePos, PLAYER_BLACK);
   }
 }

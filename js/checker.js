@@ -1,6 +1,6 @@
 function Checker(position, color)
 {
-  this.color = color;
+  this.color = colors[color];
   this.board_position = position;
   this.world_position = BoardToSpaceCords(this.board_position);
   this.cylinder = CreateCylinder(BOARD_WIDTH / 20 , BOARD_WIDTH / 20, 0.2, 32, this.color);
@@ -15,7 +15,7 @@ function Checker(position, color)
 }
 
 function Queen(position, color) {
-  this.color = color;
+  this.color = colors[color];
   this.board_position = position;
   this.world_position = BoardToSpaceCords(this.board_position);
   this.cylinder = CreateCube(BOARD_WIDTH / 20 , BOARD_WIDTH / 20, BOARD_WIDTH / 20, this.color);
@@ -56,20 +56,13 @@ function Move(position) {
       cancelable: true
     });
   this.board_position = position;
-
-  // TODO Think of a claver way to check rather or not fire this event.
-  if(this.color != player_color) {
+  if(this.color != colors[player_color]) {
     dispatchEvent(event);
   }
 }
 
-function Selected() {
-  if(this.color == COLOR_WHITE) {
-    this.SetColor(COLOR_WHITE_SELECTED);  
-  }
-  else {
-    this.SetColor(COLOR_BLACK_SELECTED);   
-  }
+function Selected() {  
+  this.SetColor(this.color + COLOR_BRIGHTNESS_INC);
 }
 
 function UnSelect() {

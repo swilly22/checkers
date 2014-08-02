@@ -6,7 +6,6 @@ function Animator() {
 	addEventListener("CheckerMove", this.BLA, false);
 }
 
-//function BLA(checker, from, to) {
 function BLA(e) {
 
 	var start = new Date().getTime()/1000;
@@ -57,11 +56,4 @@ function Animate() {
 			this.animations.splice(0, 1); // Remove animation.
 		}
 	}
-
-	/*for(var i = 0; i < this.animations.length; i++) {
-		var method = this.animations[i];
-		if(method()) {
-			this.animations.splice(i, 1); // Remove animation. 
-		}
-	}*/
 }

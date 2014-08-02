@@ -25,10 +25,13 @@ var drag = false;
 var intersect = false;
 var BOARD_WIDTH = 8;
 var BOARD_HEIGHT = 8;
-var COLOR_WHITE = 0xD6B57A;
-var COLOR_WHITE_SELECTED = 0xF6D59A;
-var COLOR_BLACK = 0x321900;
-var COLOR_BLACK_SELECTED = 0x523920;
+
+var colors = [0X000000,/*WHITE*/0xD6B57A, /*BLACK*/0x321900];
+var COLOR_BRIGHTNESS_INC = 0x202020;
+
+var PLAYER_WHITE = 1;
+var PLAYER_BLACK = 2;
+
 var selected_checker = null;
 var animator = new Animator();
 var moves = new Array();
@@ -70,6 +73,23 @@ function CreateFloor() {
     return floor;
 }
 
+// Sets up camera position according to player's position, 
+// each player is facing the board from a different position.
+function SetUpCameraViewingPosition(color) {  
+  var camera_position;
+
+  if(color == PLAYER_BLACK) {
+    camera_position = new THREE.Vector3(-BOARD_WIDTH / 2, 9, BOARD_WIDTH + 6);
+  }
+  else if(color == PLAYER_WHITE) {
+    camera_position = new THREE.Vector3(-BOARD_WIDTH / 2, 9, -6);
+  }
+
+  camera.position = camera_position;
+  var center = new THREE.Vector3(-BOARD_WIDTH/2, 0, BOARD_HEIGHT/2);
+  camera.lookAt(center);
+}
+
 function Init() {
     // set the scene size/
     WIDTH = window.innerWidth;
@@ -88,12 +108,9 @@ function Init() {
     camera = new THREE.PerspectiveCamera( VIEW_ANGLE, ASPECT, NEAR, FAR);
     //controls = new THREE.OrbitControls(camera, renderer.domElement);
 
-    // Set camera up.
-    console.log(camera.up);
+    // Set camera up.    
     camera.up.set(0, 1, 0);
-    console.log(camera.up);
 
-    //camera.position = new THREE.Vector3(-BOARD_WIDTH / 2, 17, BOARD_HEIGHT / 2);
     camera.position = new THREE.Vector3(-BOARD_WIDTH / 2, 9, -6);
     var center = new THREE.Vector3(-BOARD_WIDTH/2, 0, BOARD_HEIGHT/2);
     camera.lookAt(center);
@@ -137,6 +154,7 @@ function Init() {
     // FLOOR
     var floor = CreateFloor();
     scene.add(floor);
+
 }
 
 function onDocumentMouseDown( event ) 
@@ -207,7 +225,7 @@ function onDocumentMouseUp(event) {
         // Error occurred
         // Restore piece to it's original location.
         var last_move = moves[moves.length-1];
-        selected_checker.AnimateMove(last_move["from"]);
+        selected_checker.AnimateMove(BoardToSpaceCords(last_move["from"]));
         // Clear move list.
         moves.splice(0, moves.length);
         return;
@@ -402,7 +420,7 @@ server.InitWSConnection();
 
 var loader = new THREE.JSONLoader;
 loader.load('js/Frame.js', function (geometry, materials) {
-    var material = new THREE.MeshBasicMaterial( {color: COLOR_WHITE,  wireframe: true} );
+    var material = new THREE.MeshBasicMaterial( {color: 0xb69b4c,  wireframe: true} );
     var frame = new THREE.Mesh( geometry, material );
     frame.position = new THREE.Vector3(-BOARD_WIDTH/2, 0, BOARD_HEIGHT/2);
     scene.add(frame);
