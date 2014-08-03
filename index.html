@@ -219,7 +219,7 @@ function onDocumentMouseUp(event) {
               "to" : board_pos});
   
   // Make sure move is legal.
-  server.RequestPossibleMoves(selected_checker.board_position, 
+  server.RequestPossibleMoves(moves[0].from/*selected_checker.board_position*/, 
     function(response) {
       if(response.hasOwnProperty('error')) {
         // Error occurred

@@ -92,6 +92,7 @@ class Root(object):
 
 def main():
     # Start webserver
+    cherrypy.config.update( {'server.socket_host': '0.0.0.0'} )
     cherrypy.quickstart(Root(), '/', config={'/ws': {'tools.websocket.on': True, 'tools.websocket.handler_cls': server},
                                              '/': {'tools.sessions.on': True, 'tools.staticdir.on': True,
                                                    'tools.staticdir.dir': os.path.abspath(os.getcwd())},
@@ -100,6 +101,6 @@ def main():
                                              '/images': {'tools.staticdir.on': True,
                                                          'tools.staticdir.dir': 'C:\\dev\\checkers\\images\\'}})
 
-
+    #cherrypy.server.socket_host = '0.0.0.0'
 if __name__ == '__main__':
     main()

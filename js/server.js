@@ -2,7 +2,7 @@ var ACTIONS = {INIT : 0, POSSIBLE_MOVES : 1, MOVE : 2, PLAY : 3, WAIT : 4,
                 JOIN : 5, QUEENED : 6};
 
 function Server() {    
-  this.address = 'ws://127.0.0.1:80/ws';
+  this.address = 'ws://10.0.0.2:80/ws';
   this.callbackQueue = [];
   this.connection = null;
   this.Send = Send;
