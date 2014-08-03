@@ -377,7 +377,26 @@ def TestPossibleMoves():
 
     game_board.MultipleMove(moves[0])
     assert (len(blacks) == 0)
-    
+
+    # Incase a piece turns queen it should keep eating (when possible).
+    game_board.ClearBoard()
+    eater = checker.Checker(config.WHITE, point.Point(5, 3), game_board)
+    a = checker.Checker(config.BLACK, point.Point(6, 4), game_board)
+    b = checker.Checker(config.BLACK, point.Point(6, 6), game_board)
+
+    game_board.AddPiece(eater, eater.Position)
+    game_board.AddPiece(a, a.Position)
+    game_board.AddPiece(b, b.Position)
+
+    moves = eater.PossibleMoves()
+    assert (len (moves) == 1)
+
+    play = moves[0]
+    assert (len(play) == 1)
+
+    assert (play[0]['from'].x == 5 and play[0]['from'].y == 3 and play[0]['eat'] == True)
+    assert (play[0]['to'].x == 7 and play[0]['to'].y == 5 and play[0]['eat'] == True)
+
     return True
 
 
