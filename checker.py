@@ -43,7 +43,7 @@ class Checker(object):
             return False
 
         if(self.advanceDirection == 1):
-            if(position.x == config.BOARD_HEIGHT):
+            if(position.x == (config.BOARD_HEIGHT - 1)):
                 return True
 
         if(self.advanceDirection == -1):
@@ -103,14 +103,18 @@ class Checker(object):
             # See if we can eat more than one checker
             tmp = []  # tmp is here because we cannot modify iterated list.
             for eat_move in eat_moves:
-                previous_position = self.Position
+
+                tmp.append(eat_move)
+
+                # Incase we've just queened we can't perform additional moves.
+                if self.ShouldTurnIntoQueen(eat_move[0]['to']) == True:
+                    continue
+
                 move = self.game_board.Move(self.Position, eat_move[0]['to'], False) # Note if this is the first eat move, then direction must be enforced, currently it ain't.
                 additionalMoves = self.PossibleMoves(True)
                 if (len(additionalMoves) > 0):
                     for addition in additionalMoves:
-                        tmp.append(eat_move + addition)  # Concat arrays.
-                else:
-                    tmp.append(eat_move)
+                        tmp[-1] = (eat_move + addition)  # Concat arrays.
 
                 self.game_board.UndoMove(move)
 
