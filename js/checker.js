@@ -47,7 +47,14 @@ function Move(position) {
   var dest = position;
 
   // Fire move event.
-  var event = new CustomEvent("CheckerMove", 
+  // TODO: think of a better way figuring out if this is an eat move,
+  // Maybe pass eat as a parameter to this function.
+  event_type = "CheckerMove";
+  if(Math.abs(src.y - dest.y) > 1) {
+    event_type = "CheckerEat";
+  }
+
+  var event = new CustomEvent(event_type, 
     {
       detail:{
         checker:this, from:src, to:dest
