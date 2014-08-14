@@ -99,8 +99,9 @@ def main():
                                              '/js': {'tools.staticdir.on': True,
                                                      'tools.staticdir.dir': 'C:\\dev\\checkers\\js\\'},
                                              '/images': {'tools.staticdir.on': True,
-                                                         'tools.staticdir.dir': 'C:\\dev\\checkers\\images\\'}})
+                                                         'tools.staticdir.dir': 'C:\\dev\\checkers\\images\\'},
+                                            '/sounds': {'tools.staticdir.on': True,
+                                                         'tools.staticdir.dir': 'C:\\dev\\checkers\\sounds\\'}})
 
-    #cherrypy.server.socket_host = '0.0.0.0'
 if __name__ == '__main__':
     main()

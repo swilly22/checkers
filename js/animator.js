@@ -61,7 +61,7 @@ function AnimateCheckerEat(e) {
 		return true;
 	}
 	//this.animations.push(f);
-	animator.animations.push(f);
+	animator.animations.push({'animation_func' : f, 'animation_sound' : PlayCheckerEat});
 }
 
 function AnimateCheckerMove(e) {
@@ -104,15 +104,28 @@ function AnimateCheckerMove(e) {
 		return true;
 	}
 	//this.animations.push(f);
-	animator.animations.push(f);
+	animator.animations.push({'animation_func' : f, 'animation_sound' : PlayCheckerMove});
 }
 
 function Animate() {
 
 	// only one animation can execute on each frame.
 	if(this.animations.length > 0) {
-		var method = this.animations[0];
-		if(method()) {
+
+		// Retrive both animation method and animation sound.
+		var animation_func = this.animations[0]['animation_func'];
+		var animation_sound = this.animations[0]['animation_sound'];
+
+		// Start playing animation sound.
+		if(animation_sound != null) {
+			animation_sound();
+			// Make sure we don't play sound multipal times for the current animation.
+			this.animations[0]['animation_sound'] = null;
+		}
+
+		// Plays a frame of animation.
+		if(animation_func()) {
+			// animation completed remove it from the array.
 			this.animations.splice(0, 1); // Remove animation.
 		}
 	}
