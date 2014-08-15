@@ -3,7 +3,7 @@ function Checker(position, color)
   this.color = colors[color];
   this.board_position = position;
   this.world_position = BoardToSpaceCords(this.board_position);
-  this.cylinder = CreateCylinder(BOARD_WIDTH / 20 , BOARD_WIDTH / 20, 0.2, 32, this.color);
+  this.cylinder = CreateCylinder(BOARD_WIDTH / 20 , BOARD_WIDTH / 20, 0.1, 32, this.color);
   this.cylinder.position = this.world_position;
   this.cylinder.checker = this;
   this.Selected = Selected;
@@ -18,7 +18,7 @@ function Queen(position, color) {
   this.color = colors[color];
   this.board_position = position;
   this.world_position = BoardToSpaceCords(this.board_position);
-  this.cylinder = CreateCube(BOARD_WIDTH / 20 , BOARD_WIDTH / 20, BOARD_WIDTH / 20, this.color);
+  this.cylinder = CreateCylinder(BOARD_WIDTH / 20 , BOARD_WIDTH / 20, 0.2, 32, this.color);
   this.cylinder.position = this.world_position;
   this.cylinder.checker = this;
   this.Selected = Selected;
@@ -34,6 +34,7 @@ function Remove() {
 }
 
 function SetColor(color) {
+  if(this.cylinder == null) { return; }
   this.cylinder.material.color.setHex(color);
 }
 
@@ -78,14 +79,9 @@ function UnSelect() {
 
 function CreateCylinder(radiusTop, radiusBottom, height, segments, _color) {
     var geometry = new THREE.CylinderGeometry( radiusTop, radiusBottom, height, segments);
+    // Change cylinder center from middle to bottom.
+    geometry.applyMatrix( new THREE.Matrix4().makeTranslation(0, height/2, 0) );
     var material = new THREE.MeshBasicMaterial( {color: _color} );
     var cylinder = new THREE.Mesh( geometry, material );
     return cylinder;
-}
-
-function CreateCube(width, height, depth, _color) {
-  var geometry = new THREE.BoxGeometry(width, height, depth);
-  var material = new THREE.MeshBasicMaterial({color: _color});
-  var cube = new THREE.Mesh(geometry, material);
-  return cube;
 }

@@ -48,7 +48,7 @@ function ActionHandler(data) {
       }
       var color = piece.color;
       board.RemoveChecker(data.position);
-      board.AddChecker("Queen", data.position, color);
+      board.AddChecker("Queen", data.position, 1);
 
     default:
       console.log("Unknow action " + data.action);
