@@ -2,7 +2,7 @@ var ACTIONS = {INIT : 0, POSSIBLE_MOVES : 1, MOVE : 2, PLAY : 3, WAIT : 4,
                 JOIN : 5, QUEENED : 6};
 
 function Server() {    
-  this.address = 'ws://10.0.0.4:80/ws';
+  this.address = 'ws://10.0.0.2:80/ws';
   this.callbackQueue = [];
   this.connection = null;
   this.Send = Send;
@@ -46,9 +46,7 @@ function ActionHandler(data) {
         // TODO Request board.
         break;
       }
-      var color = piece.color;
-      board.RemoveChecker(data.position);
-      board.AddChecker("Queen", data.position, 1);
+      piece.Queened();
 
     default:
       console.log("Unknow action " + data.action);

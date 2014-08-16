@@ -39,12 +39,10 @@ function AddChecker(type, position, color) {
     console.log("There's already a piece at given position.");
     return false;
   }
+  var piece = new Checker(position, color);
 
-  if(type == "Checker") {
-    var piece = new Checker(position, color);
-  }
-  else {
-    var piece = new Queen(position, color);
+  if(type == "Queen") {
+    piece.Queened();
   }
 
   this.checkers[position.x][position.y] = piece;

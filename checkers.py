@@ -127,6 +127,14 @@ class HumanPlayer(Player):
         whitesPositions = []
         blacksPosition = []
 
+        #Test
+        #self.game_board.ClearBoard()
+        #checker1 = checker.Checker(config.WHITE, point.Point(6,6), self.game_board)
+        #checker2 = checker.Checker(config.BLACK, point.Point(2,0), self.game_board)
+        #self.game_board.AddPiece(checker1, checker1.Position)
+        #self.game_board.AddPiece(checker2, checker2.Position)
+        #EndOfTest
+
         for piece in self.game_board.checkers[config.WHITE]:
             whitesPositions.append({'x': piece.Position.x, 'y': piece.Position.y})
 

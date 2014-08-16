@@ -2,10 +2,42 @@ function Animator() {
 	this.Animate = Animate;
 	this.AnimateCheckerMove = AnimateCheckerMove;
 	this.AnimateCheckerEat = AnimateCheckerEat;
+	this.AnimateQueened = AnimateQueened;
 	this.animations = new Array();
 
 	addEventListener("CheckerMove", this.AnimateCheckerMove, false);
 	addEventListener("CheckerEat", this.AnimateCheckerEat, false);
+	addEventListener("CheckerQueened", this.AnimateQueened, false);
+}
+
+function AnimateQueened(e) {
+	var start = new Date().getTime()/1000;
+
+	// Take into account other animations which might be runnning.
+	// Multiplying by animator.animations.length + 1
+	// "waints" for previous animations to finish.
+	start += 0.5 * (animator.animations.length + 1);	
+	var checker = e.detail.checker;
+
+	function f() {
+		var delta = new Date().getTime()/1000;
+		delta = start - delta;
+		delta /= 0.5;	// animation should take 1/2 seconds.
+		delta = 1 - delta; // reverse, e.g. from -0.8 to -0.2
+		//delta *= -1; // positive.
+		delta = Math.abs(delta);
+
+		if(delta > 1) // Enough time has pass such that delta > start.
+		{
+			checker.cylinder.scale.y = 2;
+			return true;
+		}
+
+		checker.cylinder.scale.y = 1 + delta;
+		return false;
+	}
+	//this.animations.push(f);
+	animator.animations.push({'animation_func' : f, 'animation_sound' : PlayCheckerEat});
 }
 
 function AnimateCheckerEat(e) {

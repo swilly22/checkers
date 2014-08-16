@@ -12,8 +12,10 @@ function Checker(position, color)
   this.Remove = Remove;
   this.AnimateMove = AnimateMove;
   this.SetColor = SetColor;
+  this.Queened = Queened;
 }
 
+/*
 function Queen(position, color) {
   this.color = colors[color];
   this.board_position = position;
@@ -28,6 +30,7 @@ function Queen(position, color) {
   this.AnimateMove = AnimateMove;
   this.SetColor = SetColor; 
 }
+*/
 
 function Remove() {
   this.cylinder = null;
@@ -75,6 +78,21 @@ function Selected() {
 
 function UnSelect() {
   this.SetColor(this.color);
+}
+
+function Queened() {
+  // Fire event.
+  event_type = "CheckerQueened";
+  var event = new CustomEvent(event_type, 
+    {
+      detail:{
+        checker:this
+      }, 
+      bubbles: true,
+      cancelable: true
+    });
+
+    dispatchEvent(event);
 }
 
 function CreateCylinder(radiusTop, radiusBottom, height, segments, _color) {
