@@ -18,13 +18,14 @@ function ActionHandler(data) {
       for(var idx = 0; idx < data.moves.length; idx++) {
         var src = {'x' : data.moves[idx].from[0], 'y' : data.moves[idx].from[1]};
         var dest = {'x' : data.moves[idx].to[0], 'y' : data.moves[idx].to[1]};
+        var bEat = data.moves[idx].eat;
         var checker = board.checkers[src.x][src.y];
         if(checker == null) {
           console.log("Error, missing piece");
           return;
         }
 
-        board.MoveChecker(src, dest);
+        board.MoveChecker(src, dest, bEat);
       }
       break;
 

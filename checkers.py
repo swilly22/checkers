@@ -458,7 +458,7 @@ class Game(object):
 
         else:
             # Who won?
-            if (self.player[0].CheckersCount > self.player[1].CheckersCount):
+            if (self.players[0].CheckersCount > self.players[1].CheckersCount):
                 print "player1 win!"
             else:
                 print "player2 win!"

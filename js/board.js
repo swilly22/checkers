@@ -68,7 +68,7 @@ function RemoveChecker(position) {
   return true;
 }
 
-function MoveChecker(from, to) {
+function MoveChecker(from, to, eat) {
   if(!this.WithInBounds(from) || !this.WithInBounds(to)) {
     return false;
   }
@@ -82,23 +82,25 @@ function MoveChecker(from, to) {
   }
 
   // TODO: There are more checks we can perform here, but for the meantime this is enough.
-
   checker = this.checkers[from.x][from.y];
   this.checkers[from.x][from.y] = null;
   this.checkers[to.x][to.y] = checker;
   checker.Move(to);
 
-  // Check if this is an eat move.
-  if(Math.abs(from.x - to.x) > 1) {
+  if(eat) {
     console.log("Eat move.");
 
+    // Move direction
+    var xDirection = (to.x - from.x) / Math.abs((to.x - from.x));
+    var yDirection = (to.y - from.y) / Math.abs((to.y - from.y));
+    
     // Determin which piece(s) to remove.
-    var middel = {'x' : (from.x + to.x) / 2, 'y' : (from.y + to.y) / 2};
-
-    var dead = board.checkers[middel.x][middel.y];
+    var deadPiecePosition = {'x':to.x - xDirection, 'y':to.y - yDirection};
+    
+    var dead = board.checkers[deadPiecePosition.x][deadPiecePosition.y];
     if(dead == null) { 
       console.log("Dead piece missing.");
     }
-    this.RemoveChecker(middel);
+    this.RemoveChecker(deadPiecePosition);
   }
 }

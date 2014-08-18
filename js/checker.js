@@ -102,8 +102,7 @@ function CreateCylinder(radiusTop, radiusBottom, height, segments, _color) {
     var material = new THREE.MeshBasicMaterial( {color: _color} );
     var cylinder = new THREE.Mesh( geometry, material );
     return cylinder;*/
-
-    console.log("color = " + _color);
+    
     var material = new THREE.MeshPhongMaterial( {color: _color} );
     cylinder = new THREE.Mesh(checker_geometry, material);      
     return cylinder;

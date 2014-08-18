@@ -10,6 +10,9 @@ function JoinGame() {
     if(response.result == true) {
       player_color = response.player_color;
       SetUpCameraViewingPosition(player_color);
+
+      // Add light.
+      SetUpLights(player_color);
       this.RequestBoard();
     }
   });

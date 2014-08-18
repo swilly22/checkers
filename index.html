@@ -90,6 +90,21 @@ function SetUpCameraViewingPosition(color) {
   var center = new THREE.Vector3(-BOARD_WIDTH/2, 0, BOARD_HEIGHT/2);
   camera.lookAt(center);
 }
+function SetUpLights(color) {
+
+  // create a point light
+  var pointLight = new THREE.PointLight(0xFFFFFF);
+
+  // set position according to viewer.
+  if(color == PLAYER_BLACK) {
+    pointLight.position = new THREE.Vector3(-BOARD_WIDTH / 2, 12, BOARD_WIDTH + 6);
+  }
+  else if(color == PLAYER_WHITE) {
+    pointLight.position = new THREE.Vector3(-BOARD_WIDTH / 2, 12, -6);
+  }
+    // add to the scene
+    scene.add(pointLight);
+}
 
 function Init() {
     // set the scene size/
@@ -118,17 +133,6 @@ function Init() {
     
     // add the camera to the scene.
     scene.add(camera);
-
-    // create a point light
-    var pointLight = new THREE.PointLight(0xFFFFFF);
-
-    // set its position
-    pointLight.position.x = 0;
-    pointLight.position.y = 0;
-    pointLight.position.z = 900;
-
-    // add to the scene
-    scene.add(pointLight);
 
     /*var axisHelper = new THREE.AxisHelper( WIDTH / 2 );
     scene.add( axisHelper );*/
@@ -220,7 +224,7 @@ function onDocumentMouseUp(event) {
               "to" : board_pos});
   
   // Make sure move is legal.
-  server.RequestPossibleMoves(moves[0].from/*selected_checker.board_position*/, 
+  server.RequestPossibleMoves(moves[0].from, 
     function(response) {
       if(response.hasOwnProperty('error')) {
         // Error occurred
@@ -283,13 +287,13 @@ function onDocumentMouseUp(event) {
       else if (status == 0) {
         // Update board && checker, but palyer isn't done yet.
         idxMoves--; // index to last element.
-        board.MoveChecker(moves[idxMoves].from, moves[idxMoves].to);
+        board.MoveChecker(moves[idxMoves].from, moves[idxMoves].to, play[idxMoves].eat);
         return;
       }
       else { // status == 1, complete move.
 
         idxMoves--; // index to last element.
-        board.MoveChecker(moves[idxMoves].from, moves[idxMoves].to);
+        board.MoveChecker(moves[idxMoves].from, moves[idxMoves].to, play[idxMoves].eat);
         // Let server know about the move.
         server.UpdatePiecePosition(moves, 
           function(response) {
