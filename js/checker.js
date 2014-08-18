@@ -96,10 +96,15 @@ function Queened() {
 }
 
 function CreateCylinder(radiusTop, radiusBottom, height, segments, _color) {
-    var geometry = new THREE.CylinderGeometry( radiusTop, radiusBottom, height, segments);
+    /*var geometry = new THREE.CylinderGeometry( radiusTop, radiusBottom, height, segments);
     // Change cylinder center from middle to bottom.
     geometry.applyMatrix( new THREE.Matrix4().makeTranslation(0, height/2, 0) );
     var material = new THREE.MeshBasicMaterial( {color: _color} );
     var cylinder = new THREE.Mesh( geometry, material );
+    return cylinder;*/
+
+    console.log("color = " + _color);
+    var material = new THREE.MeshPhongMaterial( {color: _color} );
+    cylinder = new THREE.Mesh(checker_geometry, material);      
     return cylinder;
 }

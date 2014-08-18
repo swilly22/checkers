@@ -410,6 +410,26 @@ function update()
   }
 }
 
+var checker_geometry;
+var loader = new THREE.JSONLoader;
+
+function LoadModels() {  
+  loader.load('js/Frame.js', function (geometry, materials) {
+      var material = new THREE.MeshBasicMaterial( {color: 0xb69b4c,  wireframe: true} );
+      var frame = new THREE.Mesh( geometry, material );
+      frame.position = new THREE.Vector3(-BOARD_WIDTH/2, 0, BOARD_HEIGHT/2);
+      scene.add(frame);
+  });
+
+  loader.load('js/checker_mdl.js', function (geometry, materials) {
+      checker_geometry = geometry;
+      //var material = new THREE.MeshLambertMaterial( {color: 0x887788} );
+      //var material = new THREE.MeshPhongMaterial( {color: 0x887788} );
+      //checker_mdl = new THREE.Mesh( geometry, material );
+  });
+}
+
+LoadModels();
 Init();
 
 var bMyTurn = false;
@@ -418,21 +438,6 @@ var board = new Board();
 var server = new Server();
 server.InitWSConnection();
 
-
-var loader = new THREE.JSONLoader;
-loader.load('js/Frame.js', function (geometry, materials) {
-    var material = new THREE.MeshBasicMaterial( {color: 0xb69b4c,  wireframe: true} );
-    var frame = new THREE.Mesh( geometry, material );
-    frame.position = new THREE.Vector3(-BOARD_WIDTH/2, 0, BOARD_HEIGHT/2);
-    scene.add(frame);
-});
-
-/*loader.load('js/Cube.js', function (geometry, materials) {
-    var material = new THREE.MeshBasicMaterial( {color: COLOR_BLACK} );
-    var cube = new THREE.Mesh( geometry, material );
-    cube.position = new THREE.Vector3(0,0,0);
-    scene.add(cube);
-});*/
 
 render();
 
