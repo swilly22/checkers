@@ -1,5 +1,5 @@
 var ACTIONS = {INIT : 0, POSSIBLE_MOVES : 1, MOVE : 2, PLAY : 3, WAIT : 4,
-                JOIN : 5, QUEENED : 6};
+                JOIN : 5, QUEENED : 6, OPPONENT_LEFT : 7};
 
 function Server() {    
   this.address = 'ws://10.0.0.5:8080/ws';
@@ -48,6 +48,12 @@ function ActionHandler(data) {
         break;
       }
       piece.Queened();
+
+    case ACTIONS.OPPONENT_LEFT:
+        console.log("Opponent has left the game");
+        // Just for fun alow player to move pieces around
+        bMyTurn = true;
+        break;
 
     default:
       console.log("Unknow action " + data.action);

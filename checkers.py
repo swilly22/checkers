@@ -74,9 +74,12 @@ class Player(object):
     def RegisterOnMove(self,subscriber):
         self.subscribers.append(subscriber)
 
+    def UnRegisterOnMove(self, subscriber):
+        if subscriber in self.subscribers:
+            self.subscribers.remove(subscriber)
+
     def FireMove(self, move):
         for subscriber in self.subscribers:
-            #subscriber(src, dest)
             subscriber(move)
 
 class HumanPlayer(Player):
@@ -126,6 +129,7 @@ class HumanPlayer(Player):
         self.socket.send(json.dumps(response))
 
     def OpponentLeft(self):
+        self.opponent = None
         # Send message notifying player his opponent has left the game.
         message = {}
         message['fromServer'] = True
@@ -425,7 +429,9 @@ class Game(object):
             self.players.remove(player)
 
         if player.opponent != None:
-            player.opponent.OpponentLeft()
+            opponent = player.opponent
+            opponent.UnRegisterOnMove(self.OnMove)
+            opponent.OpponentLeft()
 
     def ChangeTurn(self):
         # Change turn.
@@ -438,6 +444,7 @@ class Game(object):
     #def OnMove(self, src, dest):
     def OnMove(self, move):
         # Update other player about the move.
+
         self.currentPlayer.opponent.OpponentMove(move)
 
         # Did checker reached the end of the board? if so queen it.
