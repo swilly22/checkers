@@ -4,16 +4,20 @@ import point
 import config
 import Tree
 import json
+import uuid
 import random
 from abc import ABCMeta, abstractmethod
 
 class Player(object):
     __metaclass__ = ABCMeta
-    def __init__(self, _color, _checkers, _game_board):
+    #def __init__(self, _color, _checkers, _game_board, game):
+    def __init__(self, _color, game):
         self.color = _color
-        self.checkers = _checkers
-        self.game_board = _game_board
+        self.game = game
+        self.game_board = game.board
+        self.checkers = game.board.checkers[_color]
         self.subscribers = [] # Used for Event mechanism.
+        self.opponent = None
 
     @property
     def CheckersCount(self):
@@ -42,6 +46,9 @@ class Player(object):
         pass
 
     def OpponentQueen(self, position):
+        pass
+
+    def OpponentLeft(self):
         pass
 
     def Queened(self, position):
@@ -74,9 +81,11 @@ class Player(object):
 
 class HumanPlayer(Player):
     
-    def __init__(self, _color, _checkers, _game_board, _socket):
+    #def __init__(self, _color, _checkers, _game_board, _socket, game):
+    def __init__(self, _color, _socket, game):
         # Call parent constructor.
-        Player.__init__(self, _color, _checkers, _game_board)
+        #Player.__init__(self, _color, _checkers, _game_board, game)
+        Player.__init__(self, _color, game)
         self.socket = _socket
         self.socket.MsgHandler = self.HandleMsg
 
@@ -115,6 +124,13 @@ class HumanPlayer(Player):
         response['action'] = config.MOVE
         response['moves'] = moves
         self.socket.send(json.dumps(response))
+
+    def OpponentLeft(self):
+        # Send message notifying player his opponent has left the game.
+        message = {}
+        message['fromServer'] = True
+        message['action'] = config.OPPONENT_LEFT
+        self.socket.send(json.dumps(message))
 
     def OpponentQueen(self, position):
         # Send message to player, currently I don't see a reason why not
@@ -239,8 +255,10 @@ class HumanPlayer(Player):
 
 class CompPlayer(Player):
 
-    def __init__(self, _color, _checkers, _game_board):
-        Player.__init__(self, _color, _checkers, _game_board)
+    #def __init__(self, _color, _checkers, _game_board, game):
+    def __init__(self, _color, game):
+        #Player.__init__(self, _color, _checkers, _game_board, game)
+        Player.__init__(self, _color, game)
 
     def Play(self, specificPiece = None, eat_mode = False):
         # Step 1. Incase we've got a piece which is able to 'eat' we must use it.
@@ -380,6 +398,7 @@ class Game(object):
         self.board = board.Board()
         self.players = []
         self.currentPlayer = None
+        self.id = uuid.uuid4()
 
     def IsGameFull(self):
         return True if (len(self.players) == 2) else False
@@ -404,6 +423,9 @@ class Game(object):
     def DropPlayer(self, player):
         if player in self.players:
             self.players.remove(player)
+
+        if player.opponent != None:
+            player.opponent.OpponentLeft()
 
     def ChangeTurn(self):
         # Change turn.
