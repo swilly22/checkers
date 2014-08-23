@@ -537,6 +537,52 @@ def TestClearBoard():
 
     return True
 
+def TestBoardSeralization():
+    game_board = board.Board()
+    serialized = game_board.Serialize()
+    empty = 0
+    white_checker = 1
+    black_checker = 2
+    white_queen = 3
+    black_queen = 4
+
+    for row in range(config.BOARD_HEIGHT):
+        for col in range(config.BOARD_WIDTH):
+            idx = (config.BOARD_WIDTH * row) + col
+            if row in range(3):
+                if ((col + row) % 2) == 0:
+                    assert serialized[idx] == white_checker
+                else:
+                    assert serialized[idx] == empty
+            elif row in range(3, 5):
+                assert serialized[idx] == empty
+            else:
+                if((col + row) % 2) == 0:
+                    assert serialized[idx] == black_checker
+                else:
+                    assert serialized[idx] == empty
+
+    # Test serialized with queens.
+    game_board.ClearBoard()
+    queenA = checker.Queen(config.BLACK, point.Point(3,3), game_board)
+    queenB = checker.Queen(config.WHITE, point.Point(6,2), game_board)
+    game_board.AddPiece(queenA, queenA.Position)
+    game_board.AddPiece(queenB, queenB.Position)
+
+    serialized = game_board.Serialize()
+
+    for row in range(config.BOARD_HEIGHT):
+        for col in range(config.BOARD_WIDTH):
+            idx = (config.BOARD_WIDTH * row) + col
+            if row == 3 and col == 3:
+                assert serialized[idx] == black_queen
+            elif row == 6 and col == 2:
+                assert serialized[idx] == white_queen
+            else:
+                assert serialized[idx] == empty
+
+    return True
+
 def main():
     if (TestInitializedBoard() != True):
         print "TestInitializedBoard failed"
@@ -557,13 +603,16 @@ def main():
         print "TestPossibleMoves failed"
 
     if (TestTree() != True):
-        print"TestTree failed"
+        print "TestTree failed"
 
     # #if(TestLookAhead() != True):
     # #print "TestLookAhead failed"
 
     if (TestQueen() != True):
         print "TestQueen failed"
+
+    if(TestBoardSeralization() != True):
+        print "TestBoardSeralization failed"
 
     print "test suite completed"
 

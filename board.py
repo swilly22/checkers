@@ -382,3 +382,31 @@ class Board(object):
             for y in range(config.BOARD_WIDTH):
                 sys.stdout.write(str(board[x][y]) + " ")
             print("")
+
+    def Serialize(self):
+        # Possibilities:
+        empty = 0
+        white_checker = 1
+        black_checker = 2
+        white_queen = 3
+        black_queen = 4
+
+        data = []
+        for row in range(config.BOARD_HEIGHT):
+            for col in range(config.BOARD_WIDTH):
+                if(self.board[row][col] == None):
+                    data.append(empty)
+                else:
+                    checker = self.board[row][col]
+                    if checker.Type == config.CHECKER:
+                        if checker.Color == config.WHITE:
+                            data.append(white_checker)
+                        else:
+                            data.append(black_checker)
+                    else: # Queen
+                        if checker.Color == config.WHITE:
+                            data.append(white_queen)
+                        else:
+                            data.append(black_queen)
+
+        return data
