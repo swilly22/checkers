@@ -4,6 +4,7 @@ import config
 import Tree
 import checkers
 import checker
+import dal
 
 
 def TestInitializedBoard():
@@ -583,6 +584,81 @@ def TestBoardSeralization():
 
     return True
 
+def TestDal():
+    dbname = "testdb.db"
+    movedb = dal.DAL(dbname)
+
+    # Clears the database.
+    movedb.ClearMovesTable()
+
+    game_board = board.Board()
+    move = [{'from' : point.Point(2,2), 'to' : point.Point(3,3), 'eat':False}]
+
+    strategy = config.OFFENSIVE
+    lookahead = 4
+
+    # Add a move to the database.
+    movedb.InsertMove(lookahead, strategy, game_board, move)
+
+    # Retrieve recently add move.
+    retrieved_move = movedb.GetMove(lookahead, strategy, game_board)
+
+    assert (len(retrieved_move) == 1)
+    retrieved_move = retrieved_move[0]
+
+    assert (retrieved_move['from'].x == move[0]['from'].x and
+            retrieved_move['from'].y == move[0]['from'].y and
+            retrieved_move['to'].x == move[0]['to'].x and
+            retrieved_move['to'].y == move[0]['to'].y and
+            retrieved_move['eat'] == False)
+
+
+    # Insert a multiple move.
+    move = [{'from' : point.Point(2,0), 'to' : point.Point(4,2), 'eat':True},
+            {'from' : point.Point(4,2), 'to' : point.Point(6,4), 'eat':True}]
+
+    # We clear this board to make sure our insert key is unique.
+    game_board.ClearBoard()
+
+    # Add a move to the database.
+    movedb.InsertMove(lookahead, strategy, game_board, move)
+
+    # Retrieve recently add move.
+    retrieved_move = movedb.GetMove(lookahead, strategy, game_board)
+
+    assert (len(retrieved_move) == 2)
+
+    assert (retrieved_move[0]['from'].x == move[0]['from'].x and
+            retrieved_move[0]['from'].y == move[0]['from'].y and
+            retrieved_move[0]['to'].x == move[0]['to'].x and
+            retrieved_move[0]['to'].y == move[0]['to'].y and
+            retrieved_move[0]['eat'] == True)
+
+    assert (retrieved_move[1]['from'].x == move[1]['from'].x and
+            retrieved_move[1]['from'].y == move[1]['from'].y and
+            retrieved_move[1]['to'].x == move[1]['to'].x and
+            retrieved_move[1]['to'].y == move[1]['to'].y and
+            retrieved_move[1]['eat'] == True)
+
+    retrieved_move = movedb.GetMove(lookahead, config.DEFENSIVE, game_board)
+    assert (retrieved_move == None)
+
+    retrieved_move = movedb.GetMove(lookahead - 1, config.OFFENSIVE, game_board)
+    assert (retrieved_move == None)
+
+    game_board.ClearBoard()
+    piece = checker.Queen(config.WHITE, point.Point(6,2), game_board)
+    game_board.AddPiece(piece, piece.Position)
+
+    retrieved_move = movedb.GetMove(lookahead, strategy, game_board)
+    assert (retrieved_move == None)
+
+    # Clear db.
+    movedb.ClearMovesTable()
+
+    import os
+    os.remove(dbname)
+
 def main():
     if (TestInitializedBoard() != True):
         print "TestInitializedBoard failed"
@@ -613,6 +689,9 @@ def main():
 
     if(TestBoardSeralization() != True):
         print "TestBoardSeralization failed"
+
+    if(TestDal() != True):
+        print "TestDal failed"
 
     print "test suite completed"
 
