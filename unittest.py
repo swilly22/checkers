@@ -653,6 +653,15 @@ def TestDal():
     retrieved_move = movedb.GetMove(lookahead, strategy, game_board)
     assert (retrieved_move == None)
 
+    # Make sure unique id is enforced.
+    try:
+        movedb.InsertMove(1,1,game_board, move)
+        movedb.InsertMove(1,1,game_board, move)
+        assert (False)
+    except Exception, e:
+        # We're supposed to end up here.
+        pass
+
     # Clear db.
     movedb.ClearMovesTable()
 

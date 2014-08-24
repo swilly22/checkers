@@ -18,3 +18,10 @@ QUEEN = 1
 
 OFFENSIVE = 0
 DEFENSIVE = 1
+
+DB_NAME = "movesdb.db"
+
+#Levels
+AMATEUR = 1
+INTERMEDIATE = 3
+PRO = 5

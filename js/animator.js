@@ -60,7 +60,7 @@ function AnimateCheckerEat(e) {
 		//delta *= -1; // positive.
 		delta = Math.abs(delta);
 		var deltaVector = direction.clone().multiplyScalar(delta);
-		console.log(delta);
+		//console.log(delta);
 
 		if(delta > 1) // Enough time has pass such that delta > start.
 		{
@@ -117,7 +117,7 @@ function AnimateCheckerMove(e) {
 		//delta *= -1; // positive.
 		delta = Math.abs(delta);
 		var deltaVector = direction.clone().multiplyScalar(delta);
-		console.log(delta);
+		//console.log(delta);
 
 		if(delta > 1) // Enough time has pass such that delta > start.
 		{

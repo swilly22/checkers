@@ -6,6 +6,7 @@ import Tree
 import json
 import uuid
 import random
+import dal
 from abc import ABCMeta, abstractmethod
 
 class Player(object):
@@ -260,11 +261,23 @@ class HumanPlayer(Player):
 class CompPlayer(Player):
 
     #def __init__(self, _color, _checkers, _game_board, game):
-    def __init__(self, _color, game):
+    def __init__(self, _color, game, level, strategy):
         #Player.__init__(self, _color, _checkers, _game_board, game)
         Player.__init__(self, _color, game)
+        self.movesdb = dal.DAL(config.DB_NAME) # todo concider changing dal method to static.
+        self.level = level
+        self.strategy = strategy
 
     def Play(self, specificPiece = None, eat_mode = False):
+
+        # Check to see if we've calculated this scenario in the past.
+        cached_move = self.movesdb.GetMove(self.level, self.strategy, self.game_board)
+        if cached_move is not None:
+            # Indeed we did, perform cached move.
+            self.game_board.MultipleMove(cached_move)
+            self.FireMove(cached_move)
+            return
+
         # Step 1. Incase we've got a piece which is able to 'eat' we must use it.
         # Determine if there's such piece.
         bMustEat = True if eat_mode or self.CanEat() else False
@@ -343,10 +356,11 @@ class CompPlayer(Player):
                 dest = node.move_to
                 SelectedNode = node
 
+        # Cache move so we won't have to recalculate it.
+        self.movesdb.InsertMove(self.level, self.strategy, self.game_board, SelectedNode.move_taken)
+
         # Perform move.
-        #res = self.game_board.Move(src, dest)
         self.game_board.MultipleMove(SelectedNode.move_taken)
-        #self.FireMove(src, dest)
         self.FireMove(SelectedNode.move_taken)
 
     def Wait(self):
@@ -354,6 +368,10 @@ class CompPlayer(Player):
 
     def JoinedGame(self):
         pass
+
+    def OpponentLeft(self):
+        self.opponent = None
+        self.game.DropPlayer(self)
 
     def LookAHead(self, root, depth):
         if (depth == 0):
@@ -471,6 +489,11 @@ class Game(object):
         self.GameLoop()
 
     def GameLoop(self):
+
+        # Do we have two players in the game?
+        if len(self.players) != 2:
+            return
+
         # Do we still have pieces on the board?
         if(self.players[0].CheckersCount > 0 and self.players[1].CheckersCount > 0):
             # Check for draw, both players can't move.

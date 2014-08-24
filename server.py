@@ -70,10 +70,12 @@ class server(ws4py.websocket.WebSocket):
         else:
             # Assuming we've received a JOIN MSG.
             # human = checkers.HumanPlayer(config.WHITE, checkers.game.board.checkers[config.WHITE], checkers.game.board, self)
-            #comp = checkers.CompPlayer(config.BLACK, checkers.game.board.checkers[config.BLACK], checkers.game.board)
-            #checkers.game.JoinPlayer(human)
-            #checkers.game.JoinPlayer(comp)
             player = gGameQueue.JoinPlayer(self)
+
+            # Add a computer player to game.
+            comp = checkers.CompPlayer(config.BLACK, player.game, config.INTERMEDIATE, config.OFFENSIVE)
+            player.game.JoinPlayer(comp)
+
             # assign player with connection
             self.player = player
             response = {}
@@ -86,7 +88,7 @@ class server(ws4py.websocket.WebSocket):
         print "connection opened."
 
     def closed(self, code, reason=None):
-        if(self.player != None):
+        if(self.player is not None):
             gGameQueue.PlayerLeft(self.player)
             print "Player has left the game."
         print "connection closed."
