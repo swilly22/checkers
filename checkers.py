@@ -93,6 +93,9 @@ class HumanPlayer(Player):
         self.socket = _socket
         self.socket.MsgHandler = self.HandleMsg
 
+    def __del__(self):
+        print("HumanPlayer destructor")
+
     def Play(self):
         # Send message to player, letting him / her know its her turn to play.
         response = {}
@@ -260,13 +263,15 @@ class HumanPlayer(Player):
 
 class CompPlayer(Player):
 
-    #def __init__(self, _color, _checkers, _game_board, game):
     def __init__(self, _color, game, level, strategy):
         #Player.__init__(self, _color, _checkers, _game_board, game)
         Player.__init__(self, _color, game)
         self.movesdb = dal.DAL(config.DB_NAME) # todo concider changing dal method to static.
         self.level = level
         self.strategy = strategy
+
+    def __del__(self):
+        print("ComPlayer destructor")
 
     def Play(self, specificPiece = None, eat_mode = False):
 
@@ -337,6 +342,7 @@ class CompPlayer(Player):
             checker = self.game_board[checkerPosition.x][checkerPosition.y]
             wins = tree.Value[0]
             losses = tree.Value[1]
+            # TODO check for divition by zero
             winRatio = float(wins) / (wins + losses)
             loseRatio = 1 - winRatio
             print ("%s\t%d\t%d\t%f\t%f")% (checker.Position, wins, losses, winRatio, loseRatio)
@@ -371,6 +377,7 @@ class CompPlayer(Player):
 
     def OpponentLeft(self):
         self.opponent = None
+        # Drop your self from the game.
         self.game.DropPlayer(self)
 
     def LookAHead(self, root, depth):
@@ -422,6 +429,9 @@ class Game(object):
         self.currentPlayer = None
         self.id = uuid.uuid4()
 
+    def __del__(self):
+        print("Game destructor")
+
     def IsGameFull(self):
         return True if (len(self.players) == 2) else False
 
@@ -429,7 +439,8 @@ class Game(object):
         if(len(self.players) == 2):
             print "Game full."
             return
-        
+
+        # TODO: Check for player's color, make sure there's no conflict (tow players of the same color)
         self.players.append(player)
 
         if(len(self.players) == 2):
@@ -447,9 +458,7 @@ class Game(object):
             self.players.remove(player)
 
         if player.opponent != None:
-            opponent = player.opponent
-            opponent.UnRegisterOnMove(self.OnMove)
-            opponent.OpponentLeft()
+            player.opponent.OpponentLeft()
 
     def ChangeTurn(self):
         # Change turn.

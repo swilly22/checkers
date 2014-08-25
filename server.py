@@ -91,6 +91,7 @@ class server(ws4py.websocket.WebSocket):
         if(self.player is not None):
             gGameQueue.PlayerLeft(self.player)
             print "Player has left the game."
+            del self.player
         print "connection closed."
 
 
