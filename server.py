@@ -65,11 +65,9 @@ class server(ws4py.websocket.WebSocket):
         global gGameQueue
 
         print "message received."
-        if (self.MsgHandler != None):
-            self.MsgHandler(message.data)
-        else:
-            # Assuming we've received a JOIN MSG.
-            # human = checkers.HumanPlayer(config.WHITE, checkers.game.board.checkers[config.WHITE], checkers.game.board, self)
+
+        request = json.loads(message.data)
+        if(request['action'] == config.JOIN):
             player = gGameQueue.JoinPlayer(self)
 
             # Add a computer player to game.
@@ -82,6 +80,16 @@ class server(ws4py.websocket.WebSocket):
             response['result'] = True
             response['player_color'] = player.color
             self.send(json.dumps(response))
+
+        elif(request['action'] == config.VIEWER_JOIN):
+            pass
+            #viewer = Viewer(self)
+            #self.viewer = viewer
+            #gGameQueue.last_added_game.JoinedViewer(viewer)
+
+        else:
+            if (self.player != None):
+                self.player.HandleMsg(message.data)
 
     def opened(self):
         self.MsgHandler = None

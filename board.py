@@ -410,3 +410,16 @@ class Board(object):
                             data.append(black_queen)
 
         return data
+
+    def GetPiecesPosition(self):
+        whitesPosition = []
+        blacksPosition = []
+
+        for piece in self.checkers[config.WHITE]:
+            whitesPosition.append({'x': piece.Position.x, 'y': piece.Position.y})
+
+        for piece in self.checkers[config.BLACK]:
+            blacksPosition.append({'x': piece.Position.x, 'y': piece.Position.y})
+
+        pieces_position = {'whites': whitesPosition, 'blacks': blacksPosition}
+        return pieces_position

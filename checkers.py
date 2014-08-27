@@ -88,10 +88,8 @@ class HumanPlayer(Player):
     #def __init__(self, _color, _checkers, _game_board, _socket, game):
     def __init__(self, _color, _socket, game):
         # Call parent constructor.
-        #Player.__init__(self, _color, _checkers, _game_board, game)
         Player.__init__(self, _color, game)
         self.socket = _socket
-        self.socket.MsgHandler = self.HandleMsg
 
     def __del__(self):
         print("HumanPlayer destructor")
@@ -146,33 +144,11 @@ class HumanPlayer(Player):
         # getting a new queen.
         self.Queened(position)
 
-    # TODO, move this Method to some place else.
-    def InitialBoard(self):
-        whitesPositions = []
-        blacksPosition = []
-
-        #Test
-        #self.game_board.ClearBoard()
-        #checker1 = checker.Checker(config.WHITE, point.Point(6,6), self.game_board)
-        #checker2 = checker.Checker(config.BLACK, point.Point(2,0), self.game_board)
-        #self.game_board.AddPiece(checker1, checker1.Position)
-        #self.game_board.AddPiece(checker2, checker2.Position)
-        #EndOfTest
-
-        for piece in self.game_board.checkers[config.WHITE]:
-            whitesPositions.append({'x': piece.Position.x, 'y': piece.Position.y})
-
-        for piece in self.game_board.checkers[config.BLACK]:
-            blacksPosition.append({'x': piece.Position.x, 'y': piece.Position.y})
-
-        data = {'whites': whitesPositions, 'blacks': blacksPosition}
-        return data
-
     def HandleMsg(self, msg):
         request = json.loads(msg)
 
         if(request['action'] == config.INIT):
-            response = self.InitialBoard()
+            response = self.game_board.GetPiecesPosition()
             self.socket.send(json.dumps(response))
 
         elif (request['action'] == config.POSSIBLE_MOVES):
@@ -428,6 +404,7 @@ class Game(object):
         self.players = []
         self.currentPlayer = None
         self.id = uuid.uuid4()
+        self.viewers = []
 
     def __del__(self):
         print("Game destructor")
@@ -459,6 +436,27 @@ class Game(object):
 
         if player.opponent != None:
             player.opponent.OpponentLeft()
+
+    def JoinedViewer(self, viewer):
+        if viewer in self.viewers:
+            return
+
+        # Send viewer the current board layout.
+        self.viewers.append(viewer)
+        pieces = self.board.GetPiecesPosition()
+        viewer.connection.send(json.dumps(pieces))
+
+        # Register viewer to player's events.
+        for player in self.players:
+            player.RegisterOnMove(viewer.PlayerMoved)
+
+    def DropViewer(self, viewer):
+        if viewer in self.viewers:
+            self.viewers.remove(viewer)
+
+        # Unregister callbacks.
+        for player in self.players:
+            player.UnRegisterOnMove(viewer.PlayerMoved)
 
     def ChangeTurn(self):
         # Change turn.
