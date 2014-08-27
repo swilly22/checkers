@@ -82,10 +82,9 @@ class server(ws4py.websocket.WebSocket):
             self.send(json.dumps(response))
 
         elif(request['action'] == config.VIEWER_JOIN):
-            pass
-            #viewer = Viewer(self)
-            #self.viewer = viewer
-            #gGameQueue.last_added_game.JoinedViewer(viewer)
+            viewer = checkers.Viewer(self)
+            self.player = viewer
+            gGameQueue.last_added_game.JoinedViewer(viewer)
 
         else:
             if (self.player != None):

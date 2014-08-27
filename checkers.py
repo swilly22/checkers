@@ -398,6 +398,33 @@ class CompPlayer(Player):
             root.Value[0] = root.Value[0] + node.Value[0]
             root.Value[1] = root.Value[1] + node.Value[1]
 
+class Viewer:
+    def __init__(self, socket):
+        self.socket = socket
+        self.game = None
+
+    def OnPlayerMove(self, moves):
+        if self.socket is not None:
+            msg = {}
+            msg['fromServer'] = True
+            msg['action'] = config.MOVE
+            msg['moves'] = moves
+            self.socket.send(json.dumps(msg))
+
+    def Joined(self):
+        msg = {}
+        msg['result'] = True
+        self.socket.send(json.dumps(msg))
+
+    def HandleMsg(self, msg):
+        request = json.loads(msg)
+
+        if(request['action'] == config.INIT):
+            response = self.game.board.GetPiecesPosition()
+            self.socket.send(json.dumps(response))
+        else:
+            print "Unknown action"
+
 class Game(object):
     def __init__(self):
         self.board = board.Board()
@@ -443,12 +470,13 @@ class Game(object):
 
         # Send viewer the current board layout.
         self.viewers.append(viewer)
-        pieces = self.board.GetPiecesPosition()
-        viewer.connection.send(json.dumps(pieces))
 
         # Register viewer to player's events.
         for player in self.players:
-            player.RegisterOnMove(viewer.PlayerMoved)
+            player.RegisterOnMove(viewer.OnPlayerMove)
+
+        viewer.game = self
+        viewer.Joined()
 
     def DropViewer(self, viewer):
         if viewer in self.viewers:
@@ -456,7 +484,7 @@ class Game(object):
 
         # Unregister callbacks.
         for player in self.players:
-            player.UnRegisterOnMove(viewer.PlayerMoved)
+            player.UnRegisterOnMove(viewer.OnPlayerMove)
 
     def ChangeTurn(self):
         # Change turn.
