@@ -165,6 +165,9 @@ class Queen(Checker):
                                 # movein after this eat unless it continues on eating
                                 # which will be reviled in recursive calls below.
                                 break
+                            else:
+                                # We're blocked.
+                                break
                         # a friend blocks our way, as we can't jump over him we'll have to stop.
                         else:
                             break

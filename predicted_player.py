@@ -1,12 +1,14 @@
+from player import Player
+from computer_player import CompPlayer
 import checkers
 import config
 import random
 import dal
+import point
 
-class predicted_player(checkers.Player):
+class predicted_player(Player):
     def __init__(self, _color, game, level, strategy):
-        #Player.__init__(self, _color, _checkers, _game_board, game)
-        checkers.Player.__init__(self, _color, game)
+        Player.__init__(self, _color, game)
         self.movesdb = dal.DAL(config.DB_NAME) # todo consider changing dal method to static.
         self.level = level
         self.strategy = strategy
@@ -84,7 +86,7 @@ def main():
 
     for i in range(100):
         game = checkers.Game()
-        comp = checkers.CompPlayer(config.WHITE, game, config.INTERMEDIATE, config.OFFENSIVE)
+        comp = CompPlayer(config.WHITE, game, config.INTERMEDIATE, config.OFFENSIVE)
         predicted = predicted_player(config.BLACK, game, config.INTERMEDIATE, config.OFFENSIVE)
 
         game.JoinPlayer(comp)

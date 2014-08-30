@@ -3,6 +3,7 @@ import point
 import config
 import Tree
 import checkers
+from computer_player import CompPlayer
 import checker
 import dal
 
@@ -139,7 +140,6 @@ def TestEatMoves():
 
     game_board.Move(point.Point(2, 2), point.Point(3, 1))
     game_board.Move(point.Point(5, 1), point.Point(4, 0))
-    print "Debug from here."
     game_board.Move(point.Point(4, 0), point.Point(2, 2))
     assert (len(blacks) == 12)
     assert (len(whites) == 11)
@@ -519,6 +519,21 @@ def TestQueen():
 
     moves = queen.PossibleMoves()
     assert (len(moves) == 2)
+
+    # Test queen doesn't eat more than one piece in each move.
+    game_board.ClearBoard()
+    queen = checker.Queen(config.WHITE, point.Point(7, 5), game_board)
+    opponent1 = checker.Checker(config.BLACK, point.Point(6, 4), game_board)
+    opponent2 = checker.Checker(config.BLACK, point.Point(5, 3), game_board)
+    friend = checker.Checker(config.WHITE, point.Point(6, 6), game_board)
+
+    game_board.AddPiece(queen, queen.Position)
+    game_board.AddPiece(opponent1, opponent1.Position)
+    game_board.AddPiece(opponent2, opponent2.Position)
+    game_board.AddPiece(friend, friend.Position)
+
+    moves = queen.PossibleMoves()
+    assert (len(moves) == 0)
     return True
 
 
@@ -537,6 +552,7 @@ def TestClearBoard():
             assert (piece == None)
 
     return True
+
 
 def TestBoardSeralization():
     game_board = board.Board()
@@ -583,6 +599,7 @@ def TestBoardSeralization():
                 assert serialized[idx] == empty
 
     return True
+
 
 def TestDal():
     dbname = "testdb.db"
@@ -667,6 +684,23 @@ def TestDal():
 
     import os
     os.remove(dbname)
+    return True
+
+
+def TestGame():
+    game = checkers.Game()
+    comp1 = CompPlayer(config.WHITE, game, config.INTERMEDIATE, config.OFFENSIVE)
+    comp2 = CompPlayer(config.WHITE, game, config.INTERMEDIATE, config.OFFENSIVE)
+
+    game.JoinPlayer(comp1)
+
+    try:
+        game.JoinPlayer(comp2)
+        assert False
+
+    except Exception,e:
+        return True
+
 
 def main():
     if (TestInitializedBoard() != True):
@@ -701,6 +735,9 @@ def main():
 
     if(TestDal() != True):
         print "TestDal failed"
+
+    if(TestGame() != True):
+        print "TestGame failed"
 
     print "test suite completed"
 

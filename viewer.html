@@ -11,7 +11,6 @@
 <script src="js/animator.js"></script>
 <script src="js/gameManager.js"></script>
 <script src="js/board.js"></script>
-<script src="js/checker.js"></script>
 <script>
 
 var scene;
@@ -31,6 +30,83 @@ var PLAYER_BLACK = 2;
 
 var animator = new Animator();
 
+
+// Checker
+function Checker(position, color)
+{
+  this.color = colors[color];
+  this.board_position = position;
+  this.world_position = BoardToSpaceCords(this.board_position);
+  this.cylinder = CreateCylinder(BOARD_WIDTH / 20 , BOARD_WIDTH / 20, 0.1, 32, this.color);
+  this.cylinder.position = this.world_position;
+  this.cylinder.checker = this;
+  this.Move = Move;
+  this.Remove = Remove;
+  this.AnimateMove = AnimateMove;
+  this.SetColor = SetColor;
+  this.Queened = Queened;
+}
+
+function Remove() {
+  this.cylinder = null;
+}
+
+function SetColor(color) {
+  if(this.cylinder == null) { return; }
+  this.cylinder.material.color.setHex(color);
+}
+
+function AnimateMove(position) {
+  this.world_position = position;
+  this.cylinder.position = this.world_position;
+}
+
+function Move(position) {
+  var src = this.board_position;
+  var dest = position;
+
+  // Fire move event.
+  // TODO: think of a better way figuring out if this is an eat move,
+  // Maybe pass eat as a parameter to this function.
+  event_type = "CheckerMove";
+  if(Math.abs(src.y - dest.y) > 1) {
+    event_type = "CheckerEat";
+  }
+
+  var event = new CustomEvent(event_type, 
+    {
+      detail:{
+        checker:this, from:src, to:dest
+      }, 
+      bubbles: true,
+      cancelable: true
+    });
+  this.board_position = position;
+  dispatchEvent(event);
+}
+
+function Queened() {
+  // Fire event.
+  event_type = "CheckerQueened";
+  var event = new CustomEvent(event_type, 
+    {
+      detail:{
+        checker:this
+      }, 
+      bubbles: true,
+      cancelable: true
+    });
+
+    dispatchEvent(event);
+}
+
+function CreateCylinder(radiusTop, radiusBottom, height, segments, _color) {    
+    var material = new THREE.MeshPhongMaterial( {color: _color} );
+    cylinder = new THREE.Mesh(checker_geometry, material);      
+    return cylinder;
+}
+
+// End of Checker
 
 // Server
 function Server() {    
@@ -101,7 +177,7 @@ function InitWSConnection() {
    var request = {"action" : ACTIONS.VIEWER_JOIN};
 
    // Server responds with board's state.
-   me.Send(request, function OnJoined (response) {
+   me.Send(request, function (response) {
       if(response.result == true) {
         var request = {"action" : ACTIONS.INIT};
         me.Send(request, HandleRequestBoard);
@@ -172,38 +248,6 @@ function CreateFloor() {
     return floor;
 }
 
-// Sets up camera position according to player's position, 
-// each player is facing the board from a different position.
-function SetUpCameraViewingPosition(color) {  
-  var camera_position;
-
-  if(color == PLAYER_BLACK) {
-    camera_position = new THREE.Vector3(-BOARD_WIDTH / 2, 9, BOARD_WIDTH + 6);
-  }
-  else if(color == PLAYER_WHITE) {
-    camera_position = new THREE.Vector3(-BOARD_WIDTH / 2, 9, -6);
-  }
-
-  camera.position = camera_position;
-  var center = new THREE.Vector3(-BOARD_WIDTH/2, 0, BOARD_HEIGHT/2);
-  camera.lookAt(center);
-}
-function SetUpLights(color) {
-
-  // create a point light
-  var pointLight = new THREE.PointLight(0xFFFFFF);
-
-  // set position according to viewer.
-  if(color == PLAYER_BLACK) {
-    pointLight.position = new THREE.Vector3(-BOARD_WIDTH / 2, 12, BOARD_WIDTH + 6);
-  }
-  else if(color == PLAYER_WHITE) {
-    pointLight.position = new THREE.Vector3(-BOARD_WIDTH / 2, 12, -6);
-  }
-    // add to the scene
-    scene.add(pointLight);
-}
-
 function Init() {
     // set the scene size/
     WIDTH = window.innerWidth;
@@ -231,6 +275,15 @@ function Init() {
     
     // add the camera to the scene.
     scene.add(camera);
+
+    // create a point light
+    var pointLight = new THREE.PointLight(0xFFFFFF);
+    //var pointLight2 = new THREE.PointLight(0xFFFFFF);
+    //pointLight1.position = new THREE.Vector3(-BOARD_WIDTH / 2, 12, BOARD_WIDTH + 6);
+    pointLight.position = new THREE.Vector3(-BOARD_WIDTH / 2, 12, -6);
+  
+    // add to the scene
+    scene.add(pointLight);
 
     /*var axisHelper = new THREE.AxisHelper( WIDTH / 2 );
     scene.add( axisHelper );*/

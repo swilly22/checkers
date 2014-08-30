@@ -1,429 +1,8 @@
 import board
 import checker
-import point
 import config
-import Tree
 import json
 import uuid
-import random
-import dal
-from abc import ABCMeta, abstractmethod
-
-class Player(object):
-    __metaclass__ = ABCMeta
-    #def __init__(self, _color, _checkers, _game_board, game):
-    def __init__(self, _color, game):
-        self.color = _color
-        self.game = game
-        self.game_board = game.board
-        self.checkers = game.board.checkers[_color]
-        self.subscribers = [] # Used for Event mechanism.
-        self.opponent = None
-
-    @property
-    def CheckersCount(self):
-        return len(self.checkers)
-
-    def CanEat(self):
-        for piece in self.checkers:
-            if (piece.CanEat() == True):
-                return True
-        return False
-
-    # Greedy tries to find the move which will result with most "eats"
-    @abstractmethod
-    def Play(self):
-        pass
-
-    @abstractmethod
-    def Wait(self):
-        pass
-
-    @abstractmethod
-    def JoinedGame(self):
-        pass
-
-    def OpponentMove(self, move):
-        pass
-
-    def OpponentQueen(self, position):
-        pass
-
-    def OpponentLeft(self):
-        pass
-
-    def Queened(self, position):
-        pass
-
-    def AllMoves(self):
-        eatersList = []  # List of 'eat' moves
-        noneEatersList = []  # List of none 'eat' moves
-
-        # foreach checker see if it can 'eat'
-        for c in self.checkers:
-            if (c.CanEat() == True):
-                eatersList = eatersList + c.PossibleMoves()
-            else:
-                noneEatersList = noneEatersList + c.PossibleMoves()
-
-        # Determin which list to use.
-        if (len(eatersList) > 0):
-            return eatersList
-        else:
-            return noneEatersList
-
-    def RegisterOnMove(self,subscriber):
-        self.subscribers.append(subscriber)
-
-    def UnRegisterOnMove(self, subscriber):
-        if subscriber in self.subscribers:
-            self.subscribers.remove(subscriber)
-
-    def FireMove(self, move):
-        for subscriber in self.subscribers:
-            subscriber(move)
-
-class HumanPlayer(Player):
-    
-    #def __init__(self, _color, _checkers, _game_board, _socket, game):
-    def __init__(self, _color, _socket, game):
-        # Call parent constructor.
-        Player.__init__(self, _color, game)
-        self.socket = _socket
-
-    def __del__(self):
-        print("HumanPlayer destructor")
-
-    def Play(self):
-        # Send message to player, letting him / her know its her turn to play.
-        response = {}
-        response['fromServer'] = True
-        response['action'] = config.PLAY
-        self.socket.send(json.dumps(response))
-        pass
-
-    def Wait(self):
-        # Send message to player.
-        response = {}
-        response['fromServer'] = True
-        response['action'] = config.WAIT
-        self.socket.send(json.dumps(response))
-
-    def Queened(self, position):
-        # Send message to player.
-        response = {}
-        response['fromServer'] = True
-        response['action'] = config.QUEENED
-        response['position'] = {}
-        response['position']['x'] = position.x
-        response['position']['y'] = position.y
-        self.socket.send(json.dumps(response))
-
-    def JoinedGame(self):
-        pass
-
-    def OpponentMove(self, moves):
-        # Send message to player.
-        response = {}
-        response['fromServer'] = True
-        response['action'] = config.MOVE
-        response['moves'] = moves
-        self.socket.send(json.dumps(response))
-
-    def OpponentLeft(self):
-        self.opponent = None
-        # Send message notifying player his opponent has left the game.
-        message = {}
-        message['fromServer'] = True
-        message['action'] = config.OPPONENT_LEFT
-        self.socket.send(json.dumps(message))
-
-    def OpponentQueen(self, position):
-        # Send message to player, currently I don't see a reason why not
-        # reuse the Queened method, although it's not this player who's
-        # getting a new queen.
-        self.Queened(position)
-
-    def HandleMsg(self, msg):
-        request = json.loads(msg)
-
-        if(request['action'] == config.INIT):
-            response = self.game_board.GetPiecesPosition()
-            self.socket.send(json.dumps(response))
-
-        elif (request['action'] == config.POSSIBLE_MOVES):
-            piecePosition = request['piece_position']
-            piece = self.game_board[piecePosition['x']][piecePosition['y']]
-            if piece == None:
-                print "No piece at given position."
-                response = {}
-                response['error'] = 'No piece at given position'
-                self.socket.send(json.dumps(response))
-            elif piece.Color != self.color:
-                print "You don't own this piece."
-                response = {}
-                response['error'] = 'You do not own this piece.'
-                self.socket.send(json.dumps(response))
-            elif self.CanEat() and not piece.CanEat():
-                print "Player must eat, this piece can't."
-                response = {}
-                response['error'] = "You must eat"
-                response['possible_moves'] = []
-                self.socket.send(json.dumps(response))
-            else:
-                moves = piece.PossibleMoves()
-                response = {}
-                response['possible_moves'] = moves
-                self.socket.send(json.dumps(response))
-
-        elif (request['action'] == config.MOVE):
-            # Sanity check on first move.
-            requestedMoves = request['moves']
-            firstMove = requestedMoves[0]
-            src = point.Point(firstMove['from']['x'], firstMove['from']['y'])
-            piece = self.game_board[src.x][src.y]
-            if piece == None:
-                print "Missing piece."
-                response = {}
-                response['error'] = 'Missing piece, probably out of sync.'
-                self.socket.send(json.dumps(response))
-                return
-
-            if piece.Color != self.color:
-                print "You don't own this piece."
-                response = {}
-                response['error'] = 'You do not own this piece.'
-                self.socket.send(json.dumps(response))
-                return
-
-            # Make sure passed moves are valid, Get piece possible moves.
-            for possibleMove in piece.PossibleMoves():
-                # Sanity validation on number of moves.
-                if(len(possibleMove) != len(requestedMoves)):
-                    continue
-                else:
-                    idx = 0
-                    # Make sure each move is valid.
-                    for move in possibleMove:
-                        if(move['from'].x != requestedMoves[idx]['from']['x'] or
-                        move['from'].y != requestedMoves[idx]['from']['y'] or
-                        move['to'].x != requestedMoves[idx]['to']['x'] or
-                        move['to'].y != requestedMoves[idx]['to']['y'] ):
-                            break
-
-                        # Advance
-                        idx+=1
-                    # Out of loop did we make it to the end of our check list?
-                    if(idx == len(requestedMoves) and idx == len(possibleMove)):
-                        # legit request, i've decided to pass possibleMove instade of
-                        # requetedMoves as it in a bit different format, which is supported
-                        # by the underline functions.
-                        res = self.game_board.MultipleMove(possibleMove)
-                        # TODO think what to do incase res equals false.
-                        response = {}
-                        response['result'] = True if(res != None) else False
-                        self.socket.send(json.dumps(response))
-
-                        # Let subscribers know about the move just performed.
-                        self.FireMove(possibleMove)
-
-                        # We're done!
-                        return
-
-            print "Given move request was denied."
-            response = {}
-            response['error'] = 'invalid move request.'
-            self.socket.send(json.dumps(response))
-        else:
-            print "Unknown action"
-
-class CompPlayer(Player):
-
-    def __init__(self, _color, game, level, strategy):
-        #Player.__init__(self, _color, _checkers, _game_board, game)
-        Player.__init__(self, _color, game)
-        self.movesdb = dal.DAL(config.DB_NAME) # todo concider changing dal method to static.
-        self.level = level
-        self.strategy = strategy
-
-    def __del__(self):
-        print("ComPlayer destructor")
-
-    def Play(self, specificPiece = None, eat_mode = False):
-
-        # Check to see if we've calculated this scenario in the past.
-        cached_move = self.movesdb.GetMove(self.level, self.strategy, self.game_board)
-        if cached_move is not None:
-            # Indeed we did, perform cached move.
-            self.game_board.MultipleMove(cached_move)
-            self.FireMove(cached_move)
-            return
-
-        # Step 1. Incase we've got a piece which is able to 'eat' we must use it.
-        # Determine if there's such piece.
-        bMustEat = True if eat_mode or self.CanEat() else False
-
-        # construct a list of checkers to test, each checker will be identified by it's position
-        # this is because our list might change over time, and we'll might calculate a result
-        # for the same piece multiple times, misleading ourselves.
-        checkersPositionsList = []
-        if(specificPiece != None):
-            checkersPositionsList.append(specificPiece.Position)
-        else:
-            for checker in self.checkers:
-                if (len(checker.PossibleMoves()) == 0):  # Piece can't move.
-                    continue
-
-                if(checker.CanEat() != bMustEat): # We must 'eat' and this piece can't.
-                    continue
-
-                checkersPositionsList.append(checker.Position)
-
-        forest = []
-        # foreach checker to consider, see what moves can we perform.
-        for checkerPos in checkersPositionsList:
-            checker = self.game_board[checkerPos.x][checkerPos.y]
-
-            # Create Tree root.
-            root = Tree.Tree([0, 0])
-            forest.append((checker.Position, root))
-
-            for move in checker.PossibleMoves(eat_mode):
-                if (move[0]['eat'] == 1):
-                    node = root.AddNode([len(move), 0])
-                else:
-                    node = root.AddNode([0, 0])
-
-                node.move_to = move[0]['to']
-                # Experimental
-                node.move_taken = move
-                # End of Experimental
-                performedMoves = self.game_board.MultipleMove(move)
-                self.LookAHead(node, 4)
-                self.game_board.MultipleUndoMove(performedMoves)
-
-            self.Ratio(root)
-            #print root.Value
-
-        print("Position\twins\tlosses\twin ration\tlose ration")
-
-        # TODO think how to pick the 'best' play.
-        SelectedTree = None
-        MaxDiff = float("-inf") # - infinity.
-        src = None
-        dest = None
-        for item in forest:
-            checkerPosition = item[0]
-            tree = item[1]
-            checker = self.game_board[checkerPosition.x][checkerPosition.y]
-            wins = tree.Value[0]
-            losses = tree.Value[1]
-            # TODO check for divition by zero
-            winRatio = float(wins) / (wins + losses)
-            loseRatio = 1 - winRatio
-            print ("%s\t%d\t%d\t%f\t%f")% (checker.Position, wins, losses, winRatio, loseRatio)
-            if((wins - losses) > MaxDiff):
-                MaxDiff = (wins - losses)
-                SelectedTree = tree
-                src = checkerPosition
-
-        MaxDiff = float("-inf") # - infinity.
-        SelectedNode = None
-        for node in SelectedTree.Nodes:
-            wins = node.Value[0]
-            losses = node.Value[1]
-            diff = wins - losses
-            if(diff > MaxDiff):
-                MaxDiff = diff
-                dest = node.move_to
-                SelectedNode = node
-
-        # Cache move so we won't have to recalculate it.
-        self.movesdb.InsertMove(self.level, self.strategy, self.game_board, SelectedNode.move_taken)
-
-        # Perform move.
-        self.game_board.MultipleMove(SelectedNode.move_taken)
-        self.FireMove(SelectedNode.move_taken)
-
-    def Wait(self):
-        pass
-
-    def JoinedGame(self):
-        pass
-
-    def OpponentLeft(self):
-        self.opponent = None
-        # Drop your self from the game.
-        self.game.DropPlayer(self)
-
-    def LookAHead(self, root, depth):
-        if (depth == 0):
-            return
-
-        # Opponent's turn.
-        if ((depth % 2) == 0):
-            player = self.opponent
-            multipler = -1
-        else:
-            player = self
-            multipler = 1
-
-        # Get all possible moves.
-        for move in player.AllMoves():
-
-            # Add new node.
-            if (move[0]['eat'] == 1):
-                if (multipler == 1):
-                    node = root.AddNode([len(move), 0])  # points.
-                else:
-                    node = root.AddNode([0, len(move)])  # points.
-            else:
-                node = root.AddNode([0, 0])  # neutral.
-
-            # Perform move.
-            performedMoves = self.game_board.MultipleMove(move)
-
-            # Call recursive.
-            self.LookAHead(node, depth - 1)
-
-            # Restore state.
-            self.game_board.MultipleUndoMove(performedMoves)
-
-    def Ratio(self, root):
-        if (root == None):
-            return
-
-        for node in root.Nodes:
-            self.Ratio(node)
-            root.Value[0] = root.Value[0] + node.Value[0]
-            root.Value[1] = root.Value[1] + node.Value[1]
-
-class Viewer:
-    def __init__(self, socket):
-        self.socket = socket
-        self.game = None
-
-    def OnPlayerMove(self, moves):
-        if self.socket is not None:
-            msg = {}
-            msg['fromServer'] = True
-            msg['action'] = config.MOVE
-            msg['moves'] = moves
-            self.socket.send(json.dumps(msg))
-
-    def Joined(self):
-        msg = {}
-        msg['result'] = True
-        self.socket.send(json.dumps(msg))
-
-    def HandleMsg(self, msg):
-        request = json.loads(msg)
-
-        if(request['action'] == config.INIT):
-            response = self.game.board.GetPiecesPosition()
-            self.socket.send(json.dumps(response))
-        else:
-            print "Unknown action"
 
 class Game(object):
     def __init__(self):
@@ -431,7 +10,7 @@ class Game(object):
         self.players = []
         self.currentPlayer = None
         self.id = uuid.uuid4()
-        self.viewers = []
+        self.spectators = []
 
     def __del__(self):
         print("Game destructor")
@@ -444,7 +23,11 @@ class Game(object):
             print "Game full."
             return
 
-        # TODO: Check for player's color, make sure there's no conflict (tow players of the same color)
+        # Check for player's color, make sure there's no conflict (tow players of the same color)
+        if len(self.players) == 1:
+            if(self.players[0].color == player.color):
+                raise Exception("Color %s already in used by other player"%(player.color))
+
         self.players.append(player)
 
         if(len(self.players) == 2):
@@ -464,27 +47,19 @@ class Game(object):
         if player.opponent != None:
             player.opponent.OpponentLeft()
 
-    def JoinedViewer(self, viewer):
-        if viewer in self.viewers:
+    def JoinSpectator(self, spectator):
+        if spectator in self.spectators:
             return
 
         # Send viewer the current board layout.
-        self.viewers.append(viewer)
+        self.spectators.append(spectator)
 
-        # Register viewer to player's events.
-        for player in self.players:
-            player.RegisterOnMove(viewer.OnPlayerMove)
+        spectator.game = self
+        spectator.Joined()
 
-        viewer.game = self
-        viewer.Joined()
-
-    def DropViewer(self, viewer):
-        if viewer in self.viewers:
-            self.viewers.remove(viewer)
-
-        # Unregister callbacks.
-        for player in self.players:
-            player.UnRegisterOnMove(viewer.OnPlayerMove)
+    def DropSpectator(self, spectator):
+        if spectator in self.spectators:
+            self.spectators.remove(spectator)
 
     def ChangeTurn(self):
         # Change turn.
@@ -494,11 +69,25 @@ class Game(object):
         else:
             self.currentPlayer = self.players[0]
 
+    def RecordMove(self, move):
+        hFile = open('game_record.txt', 'a')
+        hFile.write(json.dumps(move))
+        hFile.write('\r')
+        hFile.close()
+
     #def OnMove(self, src, dest):
     def OnMove(self, move):
-        # Update other player about the move.
+        from time import sleep
+        sleep(2)
 
+        self.RecordMove(move)
+
+        # Update other player about the move.
         self.currentPlayer.opponent.OpponentMove(move)
+
+        # Update spectators about the move.
+        for spectator in self.spectators:
+            spectator.PlayerMove(move)
 
         # Did checker reached the end of the board? if so queen it.
         #bQueen = False
@@ -519,6 +108,9 @@ class Game(object):
                 self.currentPlayer.Queened(dest)
                 # Let opponent know about this new queen.
                 self.currentPlayer.opponent.OpponentQueen(dest)
+                # Let spectators know about this new queen.
+                for spectator in self.spectators:
+                    spectator.Queen(dest)
         
         self.ChangeTurn()
         self.GameLoop()
